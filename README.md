@@ -1,41 +1,44 @@
 # Robotistan Pro - KiCad BOM to Cart (Zen Browser / Firefox Eklentisi)
 
-Bu eklenti, KiCad üzerinden oluşturulan malzeme listelerini (**ibom.html** veya **CSV**) doğrudan **Robotistan Pro** (`robotistanpro.com`) üzerinde açarak, belirlenen hedef PCB adedine, parça bazlı **MOQ (Minimum Sipariş Adedi)** ve **paket artış katlarına (Step)** göre otomatik hesaplayıp tek tıkla sepete eklemenizi sağlar.
+Bu WebExtension eklentisi, KiCad üzerinden oluşturulan malzeme listelerini (**Interactive HTML BOM - `ibom.html`** veya **CSV / TSV**) doğrudan **Robotistan Pro** (`robotistanpro.com`) üzerinde açarak; belirlenen hedef PCB adedine, parça bazlı **MOQ (Minimum Sipariş Adedi)** ve **paket artış katlarına (Step)** göre otomatik hesaplayıp tek tıkla sepete eklemenizi sağlar.
+
+Ayrıca Robotistan Pro mağaza kataloğundaki **çok sayfalı arama sonuçlarını tam kod eşleşmesiyle çözer** ve online sepete eklenemeyen **0-stoklu ön sipariş ("Temin Edilecek") ürünlerini ayrı bir listede toplayarak proforma/teklif için tek tıkla kopyalama imkanı sunar**.
 
 ---
 
 ## 🚀 Temel Özellikler
 
-1. **Doğrudan Robotistan Pro Entegrasyonu (CORS & Oturum Sorunsuz):**
-   - Eklenti doğrudan `robotistanpro.com` sayfasında content script olarak çalışır.
-   - Sayfada sağ altta şık ve rahatsız etmeyen bir **"KiCad BOM Aktar"** butonu ve kayan yan panel (drawer) sunar.
-   - Giriş yapılmış kurumsal/bireysel sepet oturumunu ve CSRF token'ı kullanarak sepete güvenle ekleme yapar.
+1. **Doğrudan Robotistan Pro Entegrasyonu (CORS & Oturum Güvenliği):**
+   - Eklenti doğrudan `robotistanpro.com` üzerinde WebExtension Content Script olarak çalışır.
+   - Sayfanın sağ alt köşesinde şık, akıcı ve kapatılabilir bir **"KiCad BOM Aktar"** kayan yan paneli (drawer) sunar.
+   - Kullanıcının oturum çerezlerini ve mağazanın güncel `CART_CSRF_TOKEN` anahtarını kullanarak güvenli şekilde işlem yapar.
 
-2. **KiCad BOM Formatları Desteği:**
-   - **Interactive HTML BOM (`ibom.html`):** KiCad'in popüler interactive HTML BOM çıktısını doğrudan okur, LZString algoritmasıyla veriyi tarayıcıda çözer.
-   - **KiCad CSV / TSV:** Standart KiCad veya özel dışa aktarılan parça tablolarını ayrıştırır.
+2. **KiCad BOM Formatları:**
+   - **Interactive HTML BOM (`ibom.html`):** KiCad'in Interactive HTML BOM çıktısını doğrudan okur; dahili sıfır bağımlılıklı LZString decompressor ile dosyayı tarayıcı içinde yerel olarak çözer.
+   - **KiCad CSV / TSV / TXT:** Standart KiCad dışa aktarılan parça tablolarını ve sekmeyle ayrılmış listeleri destekler.
 
-3. **Boş / LCSC Kodsuz Satır Yönetimi:**
-   - Montaj delikleri (mounting holes), fiducial işaretçileri veya henüz LCSC kodu girilmemiş parçalar tespit edilir.
-   - Kodsuz satırlar sarı renkle ayrı sekmede ("Kodsuz / Boş Satırlar") gösterilir; varsayılan olarak sepete ekleme seçiminden çıkarılır.
-   - İstenirse arayüz üzerinden eksik olan kod satır içi (inline) anında girilebilir.
+3. **Çok Sayfalı Arama & Tam Kod Doğrulaması (Multi-Page Exact Matching):**
+   - 4 veya 5 haneli kısa LCSC kodlarında (örneğin `C8436`) mağaza aramasında onlarca ön-ek eşleşmesi çıksa dahi, arama sayfalarını (`&ps=2`, `&ps=3`) tarayarak tam eşleşen ürünü bulur. Asla hatalı veya benzer kodlu parça eklemez.
 
-4. **Hedef PCB Miktarı & MOQ / Paket Katı Hesaplama:**
-   - **PCB Çarpanı:** 1, 5, 10, 25, 50, 100 hazır butonları veya manuel giriş ile üretilecek kart sayısı belirlenir.
-   - **Otomatik MOQ & Paket Artışı:** Robotistan Pro'dan çekilen `min` (MOQ) ve `step` değerlerine göre ihtiyaç adedi yukarı yuvarlanır:
+4. **Ön Sipariş ("Temin Edilecek") & Stok Yönetimi:**
+   - Robotistan Pro'da tanımlı olan ancak tedarikçi stoğu 0 olan veya sitede "Temin Edilecek" rozetine sahip ürünleri otomatik tespit eder.
+   - Bu parçalar tabloda turuncu `✈️ Ön Sipariş (Temin Edilecek)` rozetiyle ve özel **"✈️ Ön Sipariş"** sekmesinde ayrıştırılır.
+   - **Tek Tıkla Kopyalama:** Online mağaza sepeti sıfır stoklu ürünlerin sepete eklenmesini engellediğinden, bu parçaları LCSC kodu, parça açıklaması, talep adedi ve devre pozisyonlarıyla panoya kopyalayarak Robotistan Pro kurumsal satış ekibine veya BOM teklif sistemine tek tıkla iletebilmenizi sağlar.
+
+5. **Hedef PCB Miktarı, MOQ & Paket Katı Hesaplama:**
+   - **PCB Çarpanı:** 1, 5, 10, 25, 50, 100 hazır butonları veya serbest giriş ile üretilecek kart sayısı belirlenir.
+   - **MOQ & Paket Artışı (Step):** Robotistan Pro'dan çekilen `min` (MOQ) ve `step` değerlerine göre ihtiyaç adedi yukarı yuvarlanır:
      $$\text{Sipariş Adedi} = \max(\text{MOQ}, \lceil \frac{\text{İhtiyaç}}{\text{Paket Katı}} \rceil \times \text{Paket Katı})$$
-   - Örneğin bir kartta 19 adet direnç varsa ve 10 kart üretilecekse: İhtiyaç = 190. Robotistan'da MOQ ve paket artışı 50 ise, sipariş adedi otomatik olarak **200 adet** olarak belirlenir.
-   - **SMD Fire / Yedek Payı (%0, %5, %10):** Seri dizgi için tavsiye edilen SMD fire toleransı eklenebilir.
+   - **SMD Fire / Yedek Payı (%0, %5, %10):** Seri dizgi hatları için önerilen yedek komponent payı eklenebilir.
 
-5. **Toplu Sorgulama & Güvenli Sepete Ekleme:**
-   - **Adım 1:** Seçili parçaların anlık stok, birim fiyat, KDV dahil fiyat ve MOQ bilgileri Robotistan Pro'dan taranır.
-   - **Adım 2:** Parçalar mağazanın oturum mekanizmasına uygun bir zaman aralığıyla (throttled) sepete aktarılır. Canlı ilerleme çubuğu ile süreç izlenir.
+6. **Boş / LCSC Kodsuz Satır Yönetimi:**
+   - Montaj delikleri (mounting holes), fiducial işaretçileri veya henüz LCSC kodu atanmamış komponentler ayrı sekmede ("Kodsuz / Boş Satırlar") gösterilir ve varsayılan olarak sepetten muaf tutulur. İstenirse tablo üzerinden satır içi (inline) anında kod atanabilir.
 
 ---
 
-## 🛠️ Zen Browser'a Yükleme Adımları
+## 🛠️ Zen Browser / Firefox'a Yükleme
 
-Zen Browser, Firefox (Gecko) tabanlı modern bir tarayıcıdır. Eklentiyi Zen Browser'a yüklemek için:
+Zen Browser, Firefox (Gecko) tabanlı modern bir tarayıcıdır. Eklentiyi Zen Browser veya Firefox'a yüklemek için:
 
 1. Zen Browser'ı açın.
 2. Adres çubuğuna şunu yazıp Enter'a basın:
@@ -43,29 +46,27 @@ Zen Browser, Firefox (Gecko) tabanlı modern bir tarayıcıdır. Eklentiyi Zen B
    about:debugging#/runtime/this-firefox
    ```
 3. Açılan sayfada **"Geçici Eklenti Yükle..."** (Load Temporary Add-on...) butonuna tıklayın.
-4. Dosya seçicide şu yolu açıp içindeki `manifest.json` dosyasını seçin:
-   ```text
-   /home/ilteray/ILTERAY/robotistan-lcsc-bom-to-cart/manifest.json
-   ```
-5. Eklenti anında Zen Browser'a yüklenecektir!
+4. Proje dizinindeki [`manifest.json`](file:///home/ilteray/ILTERAY/robotistan-lcsc-bom-to-cart/manifest.json) dosyasını seçin.
+5. Eklenti anında yüklenecektir.
 
 ---
 
 ## 📖 Kullanım Kılavuzu
 
-1. **Robotistan Pro'ya gidin:**  
-   Zen Browser'da `https://robotistanpro.com` adresini açın (ve gerekirse hesabınıza giriş yapın).
+1. **Robotistan Pro'yu Açın:**  
+   Zen Browser'da `https://robotistanpro.com` adresine gidin (ve kurumsal hesabınıza giriş yapın).
 2. **BOM Panelini Açın:**  
-   Sayfanın sağ alt köşesinde beliren turuncu logolu **"KiCad BOM Aktar"** butonuna (veya tarayıcı araç çubuğundaki eklenti simgesine) tıklayın.
+   Sayfanın sağ alt köşesindeki **"KiCad BOM Aktar"** butonuna (veya tarayıcı araç çubuğundaki eklenti simgesine) tıklayın.
 3. **BOM Dosyasını Yükleyin:**  
-   Sürükle-bırak alanına KiCad'den aldığınız `ibom.html` veya `.csv` dosyasını bırakın:
-   - Örnek dosya: `/home/ilteray/ILTERAY/Dairy-Tank-Controller/hardware/Dairy-Tank-Controller/bom/ibom.html`
+   Sürükle-bırak alanına KiCad'den aldığınız `ibom.html` veya `.csv` dosyasını bırakın.
 4. **Hedef PCB Adedini Belirleyin:**  
    Üretmek istediğiniz PCB adedini seçin (örneğin `10`).
 5. **Robotistan'da Bilgileri Sorgulayın:**  
-   Alttaki **"1. Robotistan'da Sorgula ve MOQ Hesapla"** butonuna tıklayın. Parçaların stok durumları, güncel TL fiyatları ve MOQ katları çekilecektir.
+   **"1. Robotistan'da Sorgula ve MOQ Hesapla"** butonuna tıklayın. Parçaların stok durumları, güncel TL fiyatları, MOQ katları ve ön sipariş durumları çekilecektir.
 6. **Sepete Ekleyin:**  
-   **"2. Sepete Ekle"** butonuna basın. Parçalar sırayla sepete aktarılacak ve işlem bitiminde doğrudan **"Sepete Git"** butonu belirecektir.
+   **"2. Sepete Ekle"** butonuna basın. Stokta olan tüm parçalar güvenli aralıklarla sepete aktarılır.
+7. **Ön Sipariş Parçalarını İletin:**  
+   Stokta bulunmayan ön sipariş parçaları varsa, **"📋 Ön Sipariş Listesini Kopyala"** butonuna tıklayarak teklif listesini panoya alıp satış temsilcinize iletebilirsiniz.
 
 ---
 
@@ -74,34 +75,44 @@ Zen Browser, Firefox (Gecko) tabanlı modern bir tarayıcıdır. Eklentiyi Zen B
 ```text
 robotistan-lcsc-bom-to-cart/
 ├── manifest.json            # WebExtensions Manifest V3 yapılandırması
-├── package.json             # Bağımlılık ve script tanımları
-├── background.js            # Arka plan servis betiği
-├── icons/                   # 16x16, 48x48, 128x128 ve SVG eklenti simgeleri
+├── package.json             # pnpm bağımlılık ve script tanımları
+├── background.js            # Arka plan servis betiği (Action click & message handler)
+├── icons/                   # 16x16, 48x48, 128x128 PNG ve SVG vektör simgeler
 ├── lib/
-│   ├── lz-string.js         # ibom.html decompressor kütüphanesi
-│   ├── bom-parser.js        # KiCad ibom & CSV ayrıştırıcı + MOQ hesaplayıcı
-│   └── robotistan-api.js    # Robotistan Pro arama ve sepet istemci API'si
+│   ├── lz-string.js         # KiCad ibom.html LZString decompressor kütüphanesi
+│   ├── bom-parser.js        # KiCad ibom/CSV ayrıştırıcı ve MOQ hesaplayıcı
+│   └── robotistan-api.js    # Multi-page arama, MOQ, stok ve sepet API istemcisi
 ├── content/
 │   ├── content.js           # Robotistan Pro sayfasına enjekte edilen kullanıcı arayüzü
-│   └── content.css          # Kayan yan panel ve buton stilleri
+│   └── content.css          # Kayan yan panel, tablo ve buton stilleri
 ├── popup/
-│   ├── popup.html           # Eklenti buton popup arayüzü
+│   ├── popup.html           # Eklenti buton popup penceresi
 │   ├── popup.css
 │   └── popup.js
-├── test-parser.js           # Dairy-Tank BOM testi
-└── test-robotistan-api.js   # Canlı Robotistan Pro sorgulama testi
+├── test-parser.js           # KiCad ibom.html ayrıştırma ve MOQ birim testi
+└── test-robotistan-api.js   # Canlı Robotistan Pro çok sayfalı arama ve ön sipariş testi
 ```
 
 ---
 
 ## 🧪 Terminal Test Komutları
 
-Eklenti mantığını terminalde denemek için:
-
 ```bash
 # KiCad BOM Ayrıştırma Testi (ibom.html):
-pnpm test:parse
+pnpm run test:parse
 
-# Robotistan Pro Canlı Arama ve MOQ Testi:
-node test-robotistan-api.js
+# Robotistan Pro Canlı Arama, Çoklu Sayfa ve Ön Sipariş Testi:
+pnpm run test:api
+
+# WebExtension Lint Kontrolü:
+pnpm run lint
+
+# Eklentiyi Dağıtım ZIP'i Olarak Paketleme:
+pnpm run package
 ```
+
+---
+
+## 📄 Lisans
+
+MIT License - İlteray
