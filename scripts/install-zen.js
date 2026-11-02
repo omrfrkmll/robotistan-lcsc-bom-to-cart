@@ -14,7 +14,7 @@ const distDir = path.join(__dirname, "..", "dist");
 fs.mkdirSync(distDir, { recursive: true });
 
 execSync(
-  "pnpm dlx web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
+  "pnpm exec web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
   { stdio: "inherit" }
 );
 

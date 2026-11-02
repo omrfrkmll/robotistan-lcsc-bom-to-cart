@@ -6,9 +6,9 @@
   "scripts": {
     "test:parse": "node test-parser.js",
     "test:api": "node test-robotistan-api.js",
-    "lint": "pnpm dlx web-ext lint --self-hosted",
-    "package": "pnpm dlx web-ext build --overwrite-dest",
-    "build:xpi": "pnpm dlx web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
+    "lint": "web-ext lint --self-hosted",
+    "package": "web-ext build --overwrite-dest",
+    "build:xpi": "web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
     "install:zen": "node scripts/install-zen.js"
   },
   "repository": {
@@ -26,5 +26,8 @@
     "webextension"
   ],
   "author": "ilteray",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "web-ext": "^10.8.0"
+  }
 }
