@@ -70,12 +70,12 @@ function processQueue() {
   if (activeRequestsCount >= MAX_CONCURRENT_REQUESTS || requestQueue.length === 0) {
     return;
   }
-  const { code, resolve, reject } = requestQueue.shift();
+  const { code, resolve, reject, deepSearch } = requestQueue.shift();
   activeRequestsCount++;
 
   let fetchPromise = inFlightRequests.get(code);
   if (!fetchPromise) {
-    fetchPromise = fetchStockData(code).finally(() => {
+    fetchPromise = fetchStockData(code, deepSearch).finally(() => {
       inFlightRequests.delete(code);
     });
     inFlightRequests.set(code, fetchPromise);
@@ -90,7 +90,7 @@ function processQueue() {
     });
 }
 
-function queueStockCheck(code, highPriority = false) {
+function queueStockCheck(code, highPriority = false, deepSearch = false) {
   return new Promise((resolve, reject) => {
     const cleanCode = code.trim().toUpperCase();
 
@@ -104,7 +104,7 @@ function queueStockCheck(code, highPriority = false) {
       return inFlightRequests.get(cleanCode).then(resolve).catch(reject);
     }
 
-    const queueItem = { code: cleanCode, resolve, reject };
+    const queueItem = { code: cleanCode, resolve, reject, deepSearch };
     if (highPriority) {
       requestQueue.unshift(queueItem);
     } else {
@@ -117,9 +117,9 @@ function queueStockCheck(code, highPriority = false) {
 /**
  * Fetch product data using unified RobotistanApi
  */
-async function fetchStockData(cleanCode) {
+async function fetchStockData(cleanCode, deepSearch = false) {
   try {
-    const res = await RobotistanApi.searchProduct(cleanCode);
+    const res = await RobotistanApi.searchProduct(cleanCode, { deepSearch });
 
     let result = {
       timestamp: Date.now(),
@@ -193,7 +193,7 @@ async function fetchStockData(cleanCode) {
 // Message Listener
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "CHECK_STOCK") {
-    queueStockCheck(message.code, message.priority)
+    queueStockCheck(message.code, message.priority, message.deepSearch || false)
       .then((res) => sendResponse(res))
       .catch((err) => sendResponse({ status: "NOT_FOUND", error: err.message }));
     return true; // asynchronous response

@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     quickSearchResult.style.display = "flex";
     quickSearchResult.innerHTML = `<span style="font-size:11.5px; color:#64748b;">Sorgulanıyor...</span>`;
 
-    browserAPI.runtime.sendMessage({ action: "CHECK_STOCK", code: rawVal, priority: true }, (res) => {
+    browserAPI.runtime.sendMessage({ action: "CHECK_STOCK", code: rawVal, priority: true, deepSearch: true }, (res) => {
       if (!res || res.status === "NOT_FOUND" || !res.product) {
         quickSearchResult.innerHTML = `
           <div class="res-header">

@@ -426,15 +426,18 @@
   }
 
   function scanAndInject() {
-    // Select all potential product containers across LCSC list, table, and grid layouts
+    // Select product containers across LCSC table and card layouts
     const containers = document.querySelectorAll(
-      'tr, [id^="productId"], [data-product-id], .product-item, .product-card, .product-item-wrap, .v-data-table__wrapper tr, .el-table__row, .ant-table-row, div[class*="product-item"], div[class*="productCard"], div[class*="product_card"]'
+      'tr, [id^="productId"], .product-item, .product-card, .v-data-table__wrapper tr'
     );
 
     const newItems = [];
     const uncachedCodes = new Set();
 
     containers.forEach((container) => {
+      // Ignore header rows
+      if (container.closest("thead")) return;
+
       const existingBadges = container.querySelectorAll(".rb-stock-badge");
       if (existingBadges.length > 1) {
         for (let i = 1; i < existingBadges.length; i++) {
@@ -444,6 +447,10 @@
         }
       }
       if (existingBadges.length > 0) return;
+
+      // Skip if parent tr already has a badge
+      const parentTr = container.closest("tr");
+      if (parentTr && parentTr !== container && parentTr.querySelector(".rb-stock-badge")) return;
 
       let lcscCode = null;
 

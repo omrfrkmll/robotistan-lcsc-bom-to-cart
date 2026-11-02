@@ -664,12 +664,19 @@
     const selectedItems = bomData.items.filter((it) => it.selected);
     const totalComponents = selectedItems.reduce((acc, it) => acc + (it.targetQty || 0), 0);
 
-    let totalPrice = 0;
+    let totalPriceWithVat = 0;
+    let totalPriceWithoutVat = 0;
     let hasPrices = false;
     for (const item of selectedItems) {
-      if (item.productInfo && item.productInfo.totalPriceWithVat) {
-        totalPrice += item.productInfo.totalPriceWithVat * (item.targetQty || 1);
-        hasPrices = true;
+      if (item.productInfo) {
+        const withVat = Number(item.productInfo.totalPriceWithVat) || 0;
+        const withoutVat = Number(item.productInfo.price) || (withVat > 0 ? withVat / 1.2 : 0);
+        const qty = item.targetQty || 1;
+        if (withVat > 0) {
+          totalPriceWithVat += withVat * qty;
+          totalPriceWithoutVat += withoutVat * qty;
+          hasPrices = true;
+        }
       }
     }
 
@@ -677,7 +684,7 @@
     document.querySelector("#rb-stats-summary").textContent = summaryText;
 
     if (hasPrices) {
-      document.querySelector("#rb-stats-price").textContent = `Tahmini Tutar (KDV Dahil): ~${totalPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
+      document.querySelector("#rb-stats-price").innerHTML = `Tahmini Tutar: <strong>~${totalPriceWithoutVat.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺ (KDV Hariç)</strong> &nbsp;|&nbsp; <strong>~${totalPriceWithVat.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺ (KDV Dahil)</strong>`;
     } else {
       document.querySelector("#rb-stats-price").textContent = "Fiyatları görmek için '1. Robotistan'da Sorgula' butonuna basın";
     }
@@ -710,7 +717,7 @@
       renderTable();
 
       try {
-        const res = await window.RobotistanApi.searchProduct(item.lcsc);
+        const res = await window.RobotistanApi.searchProduct(item.lcsc, { deepSearch: true });
         if (res.success && res.product) {
           item.productInfo = res.product;
           item.moq = res.moq;

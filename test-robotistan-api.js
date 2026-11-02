@@ -47,7 +47,7 @@ async function run() {
 
   for (const { code, label } of testCases) {
     console.log(`[TEST] ${label} (${code}):`);
-    const res = await RobotistanApi.searchProduct(code);
+    const res = await RobotistanApi.searchProduct(code, { deepSearch: true });
     if (res.success && res.product) {
       const p = res.product;
       console.log(`  ✓ Product Found: ${p.name} (ID: ${p.id})`);
