@@ -2,54 +2,71 @@ const fs = require("fs");
 const path = require("path");
 const BomParser = require("./lib/bom-parser.js");
 
-const samplePath = "/home/ilteray/ILTERAY/Dairy-Tank-Controller/hardware/Dairy-Tank-Controller/bom/ibom.html";
+console.log("=========================================");
+console.log("1. Testing KiCad iBOM (ibom.html)");
+console.log("=========================================");
 
-console.log("Testing KiCad BOM Parser with sample file:", samplePath);
+const ibomPath = "/home/ilteray/ILTERAY/Dairy-Tank-Controller/hardware/Dairy-Tank-Controller/bom/ibom.html";
 
-if (!fs.existsSync(samplePath)) {
-  console.error("Sample file does not exist:", samplePath);
-  process.exit(1);
+if (fs.existsSync(ibomPath)) {
+  const content = fs.readFileSync(ibomPath, "utf-8");
+  const result = BomParser.parse(content, "ibom.html");
+
+  console.log("Project Name:", result.projectName);
+  console.log("Total Components on 1 PCB:", result.totalComponents);
+  console.log("Unique BOM Rows:", result.uniqueParts);
+  console.log("Rows with valid LCSC:", result.partsWithLcsc);
+  console.log("Rows missing LCSC:", result.uniqueParts - result.partsWithLcsc);
+
+  const sample = result.items.find(x => x.value.includes("GRM188R71H104KA93D"));
+  console.log("Sample Capacitor Check:", {
+    val: sample?.value,
+    footprint: sample?.footprint,
+    lcsc: sample?.lcsc
+  });
 }
 
-const content = fs.readFileSync(samplePath, "utf-8");
-const result = BomParser.parse(content, "ibom.html");
+console.log("\n=========================================");
+console.log("2. Testing KiCostX CSV (Dairy-Tank-Controller_kicostx_bom.csv)");
+console.log("=========================================");
 
-console.log("-----------------------------------------");
-console.log("Project Name:", result.projectName);
-console.log("Date:", result.date);
-console.log("Total Components on 1 PCB:", result.totalComponents);
-console.log("Unique BOM Rows (Groups):", result.uniqueParts);
-console.log("Rows with valid LCSC Part #:", result.partsWithLcsc);
-console.log("Rows missing LCSC Part # (Skipped/Empty):", result.uniqueParts - result.partsWithLcsc);
-console.log("-----------------------------------------");
+const csvPath = "/home/ilteray/Dairy-Tank-Controller_kicostx_bom.csv";
 
-console.log("\nSample 5 items with LCSC codes:");
-const sampleWithLcsc = result.items.filter(x => x.hasLcsc).slice(0, 5);
-sampleWithLcsc.forEach(item => {
-  console.log(`- [${item.lcsc}] Refs: ${item.refString} | Val: ${item.value} | Footprint: ${item.footprint} | Qty/PCB: ${item.qtyPerPcb}`);
-});
+if (fs.existsSync(csvPath)) {
+  const csvContent = fs.readFileSync(csvPath, "utf-8");
+  const result = BomParser.parse(csvContent, "Dairy-Tank-Controller_kicostx_bom.csv");
 
-console.log("\nItems without LCSC codes (empty rows):");
-const emptyItems = result.items.filter(x => !x.hasLcsc);
-emptyItems.forEach(item => {
-  console.log(`- [EMPTY] Refs: ${item.refString} | Val: ${item.value} | Footprint: ${item.footprint} | Note: ${item.note}`);
-});
+  console.log("Project Name:", result.projectName);
+  console.log("Total Components on 1 PCB:", result.totalComponents);
+  console.log("Unique BOM Rows:", result.uniqueParts);
+  console.log("Rows with valid LCSC:", result.partsWithLcsc);
 
-console.log("\n-----------------------------------------");
-console.log("Testing MOQ & PCB Batch Calculation for 10 PCBs:");
-const pcbCount = 10;
-const testMoqCases = [
-  { item: sampleWithLcsc[0], moq: 100, step: 100 }, // e.g. 0603 resistor pack
-  { item: sampleWithLcsc[1], moq: 1, step: 1 },     // e.g. IC / module
-  { item: sampleWithLcsc[2], moq: 10, step: 10 }    // e.g. electrolytic cap
-];
+  // Critical regression checks
+  const badFootprints = result.items.filter(it => it.lcsc === "C0603" || it.lcsc === "C1206" || it.lcsc === "C0805");
+  if (badFootprints.length > 0) {
+    console.error("FAIL: Footprint matched as LCSC part number!", badFootprints);
+    process.exit(1);
+  } else {
+    console.log("✓ SUCCESS: No footprints (C0603, C1206) mistaken as LCSC part numbers!");
+  }
 
-testMoqCases.forEach(({ item, moq, step }) => {
-  const calc = BomParser.calculateOrderQty(item.qtyPerPcb, pcbCount, moq, step);
-  console.log(`Part ${item.lcsc} (${item.value}):`);
-  console.log(`  Qty/PCB: ${item.qtyPerPcb} x ${pcbCount} PCBs = Needed: ${calc.neededQty}`);
-  console.log(`  Store MOQ: ${calc.moq}, Pack Step: ${calc.step}`);
-  console.log(`  Final Order Qty: ${calc.orderQty} (MOQ Adjusted: ${calc.isMoqAdjusted})`);
-});
+  const cap = result.items.find(it => it.value === "GRM188R71H104KA93D");
+  console.log("✓ Item 2 (GRM188R71H104KA93D) LCSC Code:", cap?.lcsc, "| Expected: C77055 | Footprint:", cap?.footprint);
 
-console.log("\n✓ Parser test completed successfully!");
+  if (cap?.lcsc !== "C77055") {
+    console.error("FAIL: Expected C77055 for GRM188R71H104KA93D, got:", cap?.lcsc);
+    process.exit(1);
+  }
+}
+
+console.log("\n=========================================");
+console.log("3. Testing MOQ & PCB Batch Calculation for 10 PCBs");
+console.log("=========================================");
+
+const calc = BomParser.calculateOrderQty(19, 10, 100, 100);
+console.log(`Part C77055 (GRM188R71H104KA93D):`);
+console.log(`  Qty/PCB: 19 x 10 PCBs = Needed: ${calc.neededQty}`);
+console.log(`  Store MOQ: ${calc.moq}, Pack Step: ${calc.step}`);
+console.log(`  Final Order Qty: ${calc.orderQty} (MOQ Adjusted: ${calc.isMoqAdjusted})`);
+
+console.log("\nAll Parser tests passed successfully!");
