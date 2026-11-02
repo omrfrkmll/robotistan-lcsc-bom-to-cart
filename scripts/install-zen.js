@@ -5,7 +5,8 @@ const os = require("os");
 const { execSync } = require("child_process");
 
 console.log("==========================================");
-console.log("Zen Browser - Eklenti Derleme ve Kurulumu");
+console.log("Robotistan Pro & LCSC Tedarik Asistanı");
+console.log("Zen Browser Eklenti Derleme ve Kurulumu");
 console.log("==========================================\n");
 
 // 1. Build XPI
@@ -14,11 +15,11 @@ const distDir = path.join(__dirname, "..", "dist");
 fs.mkdirSync(distDir, { recursive: true });
 
 execSync(
-  "pnpm exec web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
+  "pnpm exec web-ext build --overwrite-dest --filename robotistan-supply-assistant.xpi --artifacts-dir ./dist",
   { stdio: "inherit" }
 );
 
-const xpiPath = path.join(distDir, "robotistan-bom-to-cart_ilteray.xpi");
+const xpiPath = path.join(distDir, "robotistan-supply-assistant.xpi");
 console.log(`\n✓ Derleme tamamlandı: ${xpiPath}`);
 
 // 2. Find Zen Browser profile directory
@@ -39,7 +40,7 @@ if (fs.existsSync(zenDir)) {
 
 if (targetExtDir) {
   fs.mkdirSync(targetExtDir, { recursive: true });
-  const targetXpi = path.join(targetExtDir, "robotistan-bom-to-cart@ilteray.xpi");
+  const targetXpi = path.join(targetExtDir, "robotistan-supply-assistant@ilteray.xpi");
   fs.copyFileSync(xpiPath, targetXpi);
   console.log(`✓ Eklenti Zen profilinizin 'extensions' klasörüne kalıcı olarak kopyalandı:`);
   console.log(`  ${targetXpi}`);

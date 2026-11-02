@@ -1,10 +1,10 @@
 {
   "addons": {
-    "robotistan-bom-to-cart@ilteray": {
+    "robotistan-supply-assistant@ilteray": {
       "updates": [
         {
-          "version": "1.0.0",
-          "update_link": "https://github.com/omrfrkmll/robotistan-lcsc-bom-to-cart/releases/download/v1.0.0/robotistan-bom-to-cart_ilteray.xpi"
+          "version": "1.1.0",
+          "update_link": "https://github.com/omrfrkmll/robotistan-supply-assistant/releases/download/v1.1.0/robotistan-supply-assistant.xpi"
         }
       ]
     }

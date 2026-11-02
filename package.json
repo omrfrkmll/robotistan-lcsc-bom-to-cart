@@ -1,19 +1,19 @@
 {
-  "name": "robotistan-lcsc-bom-to-cart",
-  "version": "1.0.0",
-  "description": "Zen Browser / Firefox WebExtension to import KiCad BOM (ibom.html or CSV) and automatically add components to Robotistan Pro cart with MOQ, packaging steps, batch scaling, and pre-order handling",
+  "name": "robotistan-supply-assistant",
+  "version": "1.1.0",
+  "description": "Zen Browser / Firefox WebExtension for Robotistan Pro & LCSC: Live LCSC stock badges, 1-click cart addition, KiCad BOM to Cart automation, MOQ scaling, and proforma pre-order handling",
   "main": "background.js",
   "scripts": {
     "test:parse": "node test-parser.js",
     "test:api": "node test-robotistan-api.js",
     "lint": "web-ext lint --self-hosted",
     "package": "web-ext build --overwrite-dest",
-    "build:xpi": "web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
+    "build:xpi": "web-ext build --overwrite-dest --filename robotistan-supply-assistant.xpi --artifacts-dir ./dist",
     "install:zen": "node scripts/install-zen.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/omrfrkmll/robotistan-lcsc-bom-to-cart.git"
+    "url": "https://github.com/omrfrkmll/robotistan-supply-assistant.git"
   },
   "keywords": [
     "kicad",
@@ -23,7 +23,8 @@
     "lcsc",
     "zen-browser",
     "firefox-extension",
-    "webextension"
+    "webextension",
+    "electronics"
   ],
   "author": "ilteray",
   "license": "MIT",

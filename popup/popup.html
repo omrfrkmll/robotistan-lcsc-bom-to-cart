@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robotistan Pro BOM Aktarıcı</title>
+  <title>Robotistan Pro Tedarik Asistanı</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup-container">
+    <!-- Header -->
     <div class="popup-header">
       <div class="header-logo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -18,54 +19,85 @@
         </svg>
       </div>
       <div>
-        <h1 class="header-title">KiCad BOM to Cart</h1>
-        <p class="header-subtitle">Robotistan Pro Tedarik Asistanı</p>
+        <h1 class="header-title">Robotistan Pro</h1>
+        <p class="header-subtitle">LCSC & KiCad Tedarik Asistanı</p>
       </div>
     </div>
 
     <div class="popup-content">
-      <div id="on-site-view" class="view-panel" style="display: none;">
-        <div class="status-box active">
-          <span class="status-indicator"></span>
-          <span>Robotistan Pro sayfasındasınız</span>
-        </div>
-
-        <p class="info-text">
-          Sayfa içi kayan panel üzerinden KiCad BOM dosyanızı yükleyebilir, PCB adedine göre MOQ hesaplatıp tek tıkla sepete ekleyebilirsiniz.
-        </p>
-
-        <button id="open-drawer-btn" class="btn btn-primary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+      <!-- Quick Code Search -->
+      <div class="search-section">
+        <div class="search-input-wrapper">
+          <svg viewBox="0 0 24 24" class="search-icon" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          BOM Panelini Aç
+          <input type="text" id="quick-search-input" class="search-input" placeholder="LCSC Kodu Ara (Örn: C77055, C8436)" autocomplete="off">
+          <button id="quick-search-btn" class="search-btn">Sorgula</button>
+        </div>
+        <div id="quick-search-result" class="search-result-box" style="display: none;"></div>
+      </div>
+
+      <!-- Site Context Panel -->
+      <div id="context-robotistan" class="status-card" style="display: none;">
+        <div class="status-indicator-row">
+          <span class="status-dot green"></span>
+          <span class="status-text">Robotistan Pro üzerindesiniz</span>
+        </div>
+        <button id="open-bom-btn" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          KiCad BOM Panelini Aç
         </button>
       </div>
 
-      <div id="off-site-view" class="view-panel">
-        <div class="status-box inactive">
-          <span class="status-indicator"></span>
-          <span>Robotistan Pro sekmesi aktif değil</span>
+      <div id="context-lcsc" class="status-card" style="display: none;">
+        <div class="status-indicator-row">
+          <span class="status-dot green"></span>
+          <span class="status-text">LCSC.com üzerindesiniz</span>
+        </div>
+        <p class="status-subtext">Sayfadaki komponentlerin yanında canlı Robotistan Pro rozetleri ve sepete ekleme butonları aktiftir.</p>
+        <button id="go-robotistan-cart-btn" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+          </svg>
+          Robotistan Sepetini Aç
+        </button>
+      </div>
+
+      <div id="context-other" class="status-card">
+        <div class="status-indicator-row">
+          <span class="status-dot gray"></span>
+          <span class="status-text">Hızlı Bağlantılar</span>
+        </div>
+        <div class="quick-links-row">
+          <button id="nav-robotistan" class="btn btn-primary btn-sm">Robotistan Pro</button>
+          <button id="nav-lcsc" class="btn btn-secondary btn-sm">LCSC</button>
+        </div>
+      </div>
+
+      <!-- Settings & Tools -->
+      <div class="tools-section">
+        <div class="tool-row">
+          <span class="tool-label">Para Birimi:</span>
+          <div class="currency-toggle">
+            <button class="currency-btn active" data-currency="TL">TL ₺</button>
+            <button class="currency-btn" data-currency="USD">USD $</button>
+            <button class="currency-btn" data-currency="EUR">EUR €</button>
+          </div>
         </div>
 
-        <p class="info-text">
-          Eklenti, siparişlerinizi ve sepet oturumunuzu güvenle yönetebilmek için <strong>robotistanpro.com</strong> üzerinde çalışır.
-        </p>
-
-        <button id="go-robotistan-btn" class="btn btn-primary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-          </svg>
-          Robotistan Pro'yu Aç
-        </button>
+        <div class="tool-row">
+          <span class="tool-label" id="cache-stats-text">Önbellek: 0 ürün</span>
+          <button id="clear-cache-btn" class="btn-text">Temizle</button>
+        </div>
       </div>
     </div>
 
+    <!-- Footer -->
     <div class="popup-footer">
-      <span>v1.0.0 • Zen & Firefox Uyumlu</span>
-      <a href="https://github.com" target="_blank" class="footer-link">Yardım</a>
+      <span>v1.1.0 • Zen & Firefox Uyumlu</span>
+      <a href="https://github.com/omrfrkmll/robotistan-supply-assistant" target="_blank" class="footer-link">GitHub</a>
     </div>
   </div>
 
