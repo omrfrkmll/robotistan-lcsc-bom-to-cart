@@ -1,11 +1,13 @@
 /**
  * Robotistan Pro - LCSC Supply Assistant
- * Content Script (Runs on https://*.lcsc.com/*)
+ * Content Script (Runs on https://*.lcsc.com/* and https://lcsc.com/*)
  * Real-time Robotistan stock & price badges with 1-click Cart addition
  */
 
 (function () {
   "use strict";
+
+  console.log("[Robotistan Supply Assistant] LCSC içerik betiği yüklendi: " + window.location.href);
 
   const browserAPI = typeof browser !== "undefined" ? browser : chrome;
 
@@ -58,7 +60,7 @@
       });
 
       floatingTooltip.addEventListener("mouseleave", () => {
-        hideTooltip();
+        hideTooltip(100);
       });
 
       document.body.appendChild(floatingTooltip);
@@ -273,7 +275,7 @@
       }
     },
     {
-      rootMargin: "250px 0px 250px 0px",
+      rootMargin: "350px 0px 350px 0px",
       threshold: 0.01
     }
   );
@@ -424,8 +426,9 @@
   }
 
   function scanAndInject() {
+    // Select all potential product containers across LCSC list, table, and grid layouts
     const containers = document.querySelectorAll(
-      'tr, [id^="productId"], .product-item, .product-card, .v-data-table__wrapper tr'
+      'tr, [id^="productId"], [data-product-id], .product-item, .product-card, .product-item-wrap, .v-data-table__wrapper tr, .el-table__row, .ant-table-row, div[class*="product-item"], div[class*="productCard"], div[class*="product_card"]'
     );
 
     const newItems = [];
@@ -453,10 +456,11 @@
           extractLcscCode(cbhLink.getAttribute("href"));
       }
 
-      // 2. Strict C-code spans/anchors
+      // 2. Strict C-code text in anchors/spans/cells
       if (!lcscCode) {
-        const allTextEls = container.querySelectorAll("a, span");
+        const allTextEls = container.querySelectorAll("a, span, td, div");
         for (const el of allTextEls) {
+          if (el.children.length > 2) continue; // Skip large nested containers
           const text = el.textContent.trim();
           if (/^C\d{4,10}$/i.test(text)) {
             lcscCode = text.toUpperCase();
@@ -465,11 +469,11 @@
         }
       }
 
-      // 3. Product detail links
+      // 3. Product detail links (excluding image thumbnails)
       if (!lcscCode) {
         const links = container.querySelectorAll('a[href*="/product-detail/"]');
         for (const link of links) {
-          if (link.querySelector(".v-image, img") || !link.textContent.trim()) continue;
+          if (link.querySelector("img") || !link.textContent.trim()) continue;
           const code =
             extractLcscCode(link.textContent) ||
             extractLcscCode(link.getAttribute("title")) ||
@@ -518,18 +522,44 @@
           textColumn.appendChild(badgeRow);
         }
       } else {
-        const targetLink = cbhLink || container.querySelector('a[href*="/product-detail/"]:not(:has(img))');
-        if (targetLink && targetLink.parentElement) {
-          targetLink.parentElement.appendChild(badgeRow);
+        // Fallback: Find target element to insert right after
+        let targetEl = cbhLink;
+        if (!targetEl) {
+          const detailLinks = container.querySelectorAll('a[href*="/product-detail/"]');
+          for (const l of detailLinks) {
+            if (!l.querySelector("img") && l.textContent.trim()) {
+              targetEl = l;
+              break;
+            }
+          }
+        }
+
+        if (targetEl) {
+          const targetBlock = targetEl.closest("div, p, span") || targetEl;
+          if (targetBlock.nextSibling) {
+            targetBlock.parentNode.insertBefore(badgeRow, targetBlock.nextSibling);
+          } else {
+            targetBlock.parentNode.appendChild(badgeRow);
+          }
         } else {
           container.appendChild(badgeRow);
         }
       }
 
-      viewportObserver.observe(badge);
+      // Check if already in viewport or preload area
+      const rect = badge.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 250 && rect.bottom > -100) {
+        checkStock(code, badge, true);
+      } else {
+        viewportObserver.observe(badge);
+      }
     });
 
-    // Batch query cache for discovered items
+    if (newItems.length > 0) {
+      console.log(`[Robotistan Supply Assistant] ${newItems.length} yeni LCSC ürününe rozet eklendi.`);
+    }
+
+    // Batch query background cache for discovered items
     if (uncachedCodes.size > 0) {
       browserAPI.runtime.sendMessage(
         { action: "GET_BATCH_CACHE", codes: Array.from(uncachedCodes) },
@@ -542,26 +572,193 @@
     }
   }
 
-  // Scan product detail page headers
-  function scanDetailPageHeader() {
+  /**
+   * Prominent stock card for Product Detail page (shadcn Card style with 1-click cart addition)
+   */
+  function injectDetailPageCard(code) {
+    if (document.getElementById("rb-detail-card")) return;
+
+    const titleContainer =
+      document.querySelector("h1") ||
+      document.querySelector(".product-title") ||
+      document.querySelector(".title-wrap") ||
+      document.querySelector('[data-spm="xh"]');
+
+    if (!titleContainer) return;
+
+    const card = document.createElement("div");
+    card.id = "rb-detail-card";
+    card.className = "rb-detail-stock-card";
+    card.innerHTML = `
+      <div class="rb-detail-header">
+        <div class="rb-detail-brand">
+          <span style="color:#f97316; font-weight:700;">Robotistan Pro</span>
+          <span>Tedarik Durumu</span>
+        </div>
+        <div class="rb-detail-code">LCSC Kodu: <strong>${escapeHtml(code)}</strong></div>
+      </div>
+      <div class="rb-detail-body" id="rb-detail-body">
+        ${ICONS.spinner}
+        <span style="margin-left: 6px; font-size: 12px; color:#71717a;">Robotistan Pro üzerinden canlı sorgulanıyor...</span>
+      </div>
+    `;
+
+    if (titleContainer.parentNode) {
+      titleContainer.parentNode.insertBefore(card, titleContainer.nextSibling);
+    }
+
+    function handleDetailResult(result) {
+      const body = document.getElementById("rb-detail-body");
+      if (!body || !result) return;
+
+      if (result.status === "IN_STOCK" && result.product) {
+        const p = result.product;
+        card.classList.add("rb-detail-card-in-stock");
+        const defaultQty = p.moq || 1;
+        const stepQty = p.step || 1;
+
+        body.innerHTML = `
+          <div class="rb-detail-row">
+            <div class="rb-detail-price">${escapeHtml(p.price_with_vat || "")}</div>
+            <div class="rb-stock-badge rb-badge-in-stock" style="margin-left:0;">
+              <span class="rb-status-dot"></span>
+              <span>Stokta Var</span>
+            </div>
+          </div>
+          <div class="rb-detail-meta">
+            <div><span>KDV Hariç:</span> <strong>${p.price_without_vat ? `${Number(p.price_without_vat).toFixed(2)} ${p.currency || "TL"}` : "-"}</strong></div>
+            <div><span>Paket Kuralı:</span> <strong>${escapeHtml(p.stock_unit || `Adet ${defaultQty}-${stepQty}`)}</strong></div>
+            <div><span>Robotistan Ürün Adı:</span> <strong>${escapeHtml(p.title || "")}</strong></div>
+          </div>
+
+          <!-- Direct Add to Cart Action Row -->
+          <div class="rb-tooltip-cart-row" style="margin-top: 8px; margin-bottom: 8px;">
+            <div class="rb-tooltip-qty-wrapper">
+              <span class="rb-qty-label" style="color:#ffffff;">Adet:</span>
+              <input type="number" class="rb-tooltip-qty" id="rb-detail-qty-${p.id}" value="${defaultQty}" min="${defaultQty}" step="${stepQty}">
+            </div>
+            <button class="rb-tooltip-cart-btn" id="rb-detail-btn-${p.id}">
+              ${ICONS.cart}
+              <span>Robotistan Sepetime Ekle</span>
+            </button>
+          </div>
+          <div class="rb-cart-feedback" id="rb-detail-feedback-${p.id}" style="display:none;"></div>
+
+          <div style="margin-top: 6px;">
+            <a href="${p.url || `https://robotistanpro.com/arama?q=${encodeURIComponent(code)}`}" target="_blank" rel="noopener noreferrer" class="rb-detail-btn">
+              Robotistan Pro'da Aç ➔
+            </a>
+          </div>
+        `;
+
+        const addBtn = body.querySelector(`#rb-detail-btn-${p.id}`);
+        const qtyInput = body.querySelector(`#rb-detail-qty-${p.id}`);
+        const feedback = body.querySelector(`#rb-detail-feedback-${p.id}`);
+
+        if (addBtn && qtyInput) {
+          addBtn.addEventListener("click", () => {
+            const qty = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+            addBtn.disabled = true;
+            addBtn.innerHTML = `${ICONS.spinner} <span>Ekleniyor...</span>`;
+
+            browserAPI.runtime.sendMessage(
+              { action: "ADD_TO_CART", productId: p.id, quantity: qty },
+              (res) => {
+                addBtn.disabled = false;
+                if (res && res.success) {
+                  addBtn.innerHTML = `${ICONS.check} <span>Sepete Eklendi!</span>`;
+                  addBtn.style.backgroundColor = "#16a34a";
+                  if (feedback) {
+                    feedback.style.display = "block";
+                    feedback.innerHTML = `✓ ${qty} adet sepete eklendi! <a href="https://robotistanpro.com/sepet" target="_blank">Sepeti Aç ➔</a>`;
+                  }
+                } else {
+                  addBtn.innerHTML = `<span>Hata!</span>`;
+                  if (feedback) {
+                    feedback.style.display = "block";
+                    feedback.style.color = "#f87171";
+                    feedback.textContent = res?.error || "Sepete eklenemedi.";
+                  }
+                }
+              }
+            );
+          });
+        }
+      } else if (result.status === "PREORDER" && result.product) {
+        const p = result.product;
+        card.classList.add("rb-detail-card-preorder");
+        body.innerHTML = `
+          <div class="rb-detail-row">
+            <div class="rb-detail-price">${escapeHtml(p.price_with_vat || "Fiyat Belirtilmemiş")}</div>
+            <div class="rb-stock-badge rb-badge-preorder" style="margin-left:0;">
+              <span class="rb-status-dot"></span>
+              <span>✈️ Ön Sipariş (Temin Edilecek)</span>
+            </div>
+          </div>
+          <div class="rb-detail-meta">
+            <div><span>Paket Kuralı:</span> <strong>${escapeHtml(p.stock_unit || "-")}</strong></div>
+            <div><span>Robotistan Ürün Adı:</span> <strong>${escapeHtml(p.title || "")}</strong></div>
+            <p style="color:#d97706; margin-top: 4px; font-size: 11.5px;">Bu ürün online mağaza stoğunda sıfırdır, kurumsal proforma/teklif listesi ile Robotistan tarafından temin edilir.</p>
+          </div>
+          <a href="${p.url || result.searchUrl}" target="_blank" rel="noopener noreferrer" class="rb-detail-btn rb-btn-secondary">
+            Robotistan Pro Sayfasını Gör ➔
+          </a>
+        `;
+      } else if (result.status === "OUT_OF_STOCK" && result.product) {
+        const p = result.product;
+        card.classList.add("rb-detail-card-out-of-stock");
+        body.innerHTML = `
+          <div class="rb-detail-row">
+            <div class="rb-detail-price">${escapeHtml(p.price_with_vat || "Fiyat Belirtilmemiş")}</div>
+            <div class="rb-stock-badge rb-badge-out-of-stock" style="margin-left:0;">
+              <span class="rb-status-dot"></span>
+              <span>Tükendi</span>
+            </div>
+          </div>
+          <div class="rb-detail-meta">
+            <div><span>Paket Kuralı:</span> <strong>${escapeHtml(p.stock_unit || "-")}</strong></div>
+            <div><span>Robotistan Ürün Adı:</span> <strong>${escapeHtml(p.title || "")}</strong></div>
+          </div>
+          <a href="${p.url || result.searchUrl}" target="_blank" rel="noopener noreferrer" class="rb-detail-btn rb-btn-secondary">
+            Robotistan Pro Sayfasını Gör ➔
+          </a>
+        `;
+      } else {
+        card.classList.add("rb-detail-card-not-found");
+        body.innerHTML = `
+          <div class="rb-detail-row">
+            <div class="rb-stock-badge rb-badge-not-found" style="margin-left:0;">
+              <span>Robotistan'da Yok</span>
+            </div>
+          </div>
+          <div class="rb-detail-meta">
+            <p style="color:#71717a;">Bu LCSC koduna (${escapeHtml(code)}) ait bir ürün Robotistan Pro'da bulunamadı.</p>
+          </div>
+          <a href="${result.searchUrl}" target="_blank" rel="noopener noreferrer" class="rb-detail-btn rb-btn-secondary">
+            Robotistan'da Manuel Ara ➔
+          </a>
+        `;
+      }
+    }
+
+    if (requestedCodes.has(code)) {
+      handleDetailResult(requestedCodes.get(code));
+    } else {
+      browserAPI.runtime.sendMessage(
+        { action: "CHECK_STOCK", code: code, priority: true },
+        (res) => {
+          if (res) handleDetailResult(res);
+        }
+      );
+    }
+  }
+
+  function scanDetailPage() {
     if (!window.location.pathname.includes("/product-detail/")) return;
-
-    const existing = document.querySelector("#rb-detail-page-badge");
-    if (existing) return;
-
-    const urlCode = extractLcscCode(window.location.pathname);
-    if (!urlCode) return;
-
-    const titleEl = document.querySelector("h1, .product-title, .title-text");
-    if (!titleEl) return;
-
-    const badge = createBadgeElement(urlCode);
-    badge.id = "rb-detail-page-badge";
-    badge.style.marginLeft = "10px";
-    badge.style.display = "inline-flex";
-
-    titleEl.appendChild(badge);
-    checkStock(urlCode, badge, true);
+    const detailCode = extractLcscCode(window.location.pathname);
+    if (detailCode) {
+      injectDetailPageCard(detailCode);
+    }
   }
 
   let debounceTimer = null;
@@ -569,10 +766,11 @@
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       scanAndInject();
-      scanDetailPageHeader();
-    }, 120);
+      scanDetailPage();
+    }, 100);
   }
 
+  // Observe DOM mutations for dynamic content loading
   const observer = new MutationObserver((mutations) => {
     let shouldScan = false;
     for (const m of mutations) {
@@ -588,6 +786,18 @@
     childList: true,
     subtree: true
   });
+
+  // Observe URL changes (LCSC Single Page App navigation)
+  let lastUrl = window.location.href;
+  setInterval(() => {
+    if (window.location.href !== lastUrl) {
+      lastUrl = window.location.href;
+      debouncedScan();
+    }
+  }, 500);
+
+  // Hide tooltip on scroll
+  window.addEventListener("scroll", () => hideTooltip(0), { passive: true });
 
   // Initial runs
   if (document.readyState === "loading") {

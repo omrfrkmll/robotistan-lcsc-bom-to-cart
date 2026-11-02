@@ -304,3 +304,131 @@
 .rb-tooltip-action:hover {
   text-decoration: underline !important;
 }
+
+
+/* ==========================================================================
+   Product Detail Page Card (shadcn/ui Card with Cart Action)
+   ========================================================================== */
+.rb-detail-stock-card {
+  margin: 12px 0 16px 0 !important;
+  padding: 14px 18px !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  box-sizing: border-box !important;
+  max-width: 650px !important;
+}
+
+.rb-detail-card-in-stock {
+  border-color: #bbf7d0 !important;
+  background-color: #fcfdfd !important;
+}
+
+.rb-detail-card-preorder {
+  border-color: #fde68a !important;
+  background-color: #fffdf7 !important;
+}
+
+.rb-detail-card-out-of-stock {
+  border-color: #fecaca !important;
+  background-color: #fffdfd !important;
+}
+
+.rb-detail-card-not-found {
+  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+}
+
+.rb-detail-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding-bottom: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.rb-detail-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+}
+
+.rb-detail-code {
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
+.rb-detail-code strong {
+  color: #0f172a !important;
+}
+
+.rb-detail-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.rb-detail-price {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.rb-detail-meta {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  font-size: 12px !important;
+  color: #475569 !important;
+  margin-bottom: 10px !important;
+}
+
+.rb-detail-meta span {
+  color: #64748b !important;
+}
+
+.rb-detail-meta strong {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+.rb-detail-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 6px 14px !important;
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: all 120ms ease !important;
+}
+
+.rb-detail-btn:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+.rb-btn-secondary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.rb-btn-secondary:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
