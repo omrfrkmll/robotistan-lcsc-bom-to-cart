@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "robotistan-bom-to-cart@ilteray": {
+      "updates": [
+        {
+          "version": "1.0.0",
+          "update_link": "https://github.com/omrfrkmll/robotistan-lcsc-bom-to-cart/releases/download/v1.0.0/robotistan-bom-to-cart_ilteray.xpi"
+        }
+      ]
+    }
+  }
+}

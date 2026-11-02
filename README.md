@@ -36,18 +36,47 @@ Ayrıca Robotistan Pro mağaza kataloğundaki **çok sayfalı arama sonuçların
 
 ---
 
-## 🛠️ Zen Browser / Firefox'a Yükleme
+## 🛠️ Zen Browser / Firefox'a Yükleme ve Kullanım Modları
 
-Zen Browser, Firefox (Gecko) tabanlı modern bir tarayıcıdır. Eklentiyi Zen Browser veya Firefox'a yüklemek için:
+### 1. Kalıcı Kurulum (Tarayıcı Kapanıp Açılsa da Kaybolmaz)
 
-1. Zen Browser'ı açın.
-2. Adres çubuğuna şunu yazıp Enter'a basın:
-   ```text
-   about:debugging#/runtime/this-firefox
+Geliştirici sekmesine (`about:debugging`) bağımlı kalmadan eklentiyi normal bir mağaza eklentisi gibi tarayıcınızda sürekli yüklü tutmak için:
+
+1. Terminalde tek tıkla eklentiyi derleyin:
+   ```bash
+   pnpm run build:xpi
    ```
-3. Açılan sayfada **"Geçici Eklenti Yükle..."** (Load Temporary Add-on...) butonuna tıklayın.
-4. Proje dizinindeki [`manifest.json`](file:///home/ilteray/ILTERAY/robotistan-lcsc-bom-to-cart/manifest.json) dosyasını seçin.
-5. Eklenti anında yüklenecektir.
+   Bu komut `dist/robotistan-bom-to-cart_ilteray.xpi` paketini üretir.
+2. Zen Browser'da `about:addons` (Eklentiler) sayfasını açın.
+3. Sağ üstteki **⚙ (Çark) simgesi -> "Dosyadan Eklenti Kur..." (Install Add-on From File...)** seçeneğine tıklayın.
+4. Üretilen `dist/robotistan-bom-to-cart_ilteray.xpi` dosyasını seçin ve gelen uyarıda **"Ekle" (Add)** butonuna basın.
+5. **Artık eklenti kalıcıdır!** Tarayıcınızı kapatsanız, bilgisayarı yeniden başlatsanız dahi eklenti yüklü kalmaya devam eder.
+
+> Alternatif olarak terminalden doğrudan `pnpm run install:zen` komutunu çalıştırarak derlenen eklentiyi otomatik olarak Zen Browser profilinizin `extensions` klasörüne de aktarabilirsiniz.
+
+---
+
+### 2. Canlı Geliştirici Modu (Geliştirme Yaparken)
+
+Kod üzerinde anlık değişiklik yaparken:
+1. `about:debugging#/runtime/this-firefox` sayfasını açın.
+2. **"Geçici Eklenti Yükle..."** butonuna tıklayıp proje klasöründeki `manifest.json` dosyasını seçin.
+3. Kodda değişiklik yaptığınızda sayfadaki **"Yeniden Yükle" (Reload)** butonuna basarak anında test edin.
+
+---
+
+### 3. GitHub Üzerinden Otomatik Derleme ve Dağıtım
+
+Projede dahili GitHub Actions workflow'u (`.github/workflows/release.yml`) ve Mozilla uyumlu `updates.json` tanımlıdır.
+Yeni bir versiyon çıkardığınızda:
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+GitHub Actions otomatik olarak:
+- Eklentiyi sıfırdan derler.
+- `robotistan-bom-to-cart_ilteray.xpi` dosyasını GitHub Release'e ekler.
+- Zen Browser arka planda `update_url` kontrolü yaparak yeni sürümü günceller.
 
 ---
 

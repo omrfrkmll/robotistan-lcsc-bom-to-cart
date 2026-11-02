@@ -6,8 +6,10 @@
   "scripts": {
     "test:parse": "node test-parser.js",
     "test:api": "node test-robotistan-api.js",
-    "lint": "pnpm dlx web-ext lint",
-    "package": "pnpm dlx web-ext build --overwrite-dest"
+    "lint": "pnpm dlx web-ext lint --self-hosted",
+    "package": "pnpm dlx web-ext build --overwrite-dest",
+    "build:xpi": "pnpm dlx web-ext build --overwrite-dest --filename robotistan-bom-to-cart_ilteray.xpi --artifacts-dir ./dist",
+    "install:zen": "node scripts/install-zen.js"
   },
   "repository": {
     "type": "git",
