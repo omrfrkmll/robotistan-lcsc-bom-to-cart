@@ -13,7 +13,7 @@
   let bomData = null;
   let pcbCount = 10;
   let bufferPercent = 0;
-  let activeFilter = "lcsc"; // 'all', 'lcsc', 'empty'
+  let activeFilter = "lcsc"; // 'all', 'lcsc', 'in_stock', 'preorder', 'empty'
   let isProcessing = false;
 
   // Icons
@@ -23,7 +23,9 @@
     cart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>`,
     search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
     check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-    close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+    close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    clipboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>`,
+    plane: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`
   };
 
   function initUI() {
@@ -83,7 +85,7 @@
                   <span class="rb-stat-value" id="rb-stat-total">0</span>
                 </div>
                 <div class="rb-stat">
-                  <span class="rb-stat-label">Benzersiz Satır</span>
+                  <span class="rb-stat-label">Benzersiz Parça</span>
                   <span class="rb-stat-value" id="rb-stat-unique">0</span>
                 </div>
                 <div class="rb-stat">
@@ -91,8 +93,16 @@
                   <span class="rb-stat-value" style="color:#15803d;" id="rb-stat-lcsc">0</span>
                 </div>
                 <div class="rb-stat">
+                  <span class="rb-stat-label">Stokta Olan</span>
+                  <span class="rb-stat-value" style="color:#15803d;" id="rb-stat-instock">-</span>
+                </div>
+                <div class="rb-stat">
+                  <span class="rb-stat-label">Ön Sipariş</span>
+                  <span class="rb-stat-value" style="color:#d97706;" id="rb-stat-preorder">-</span>
+                </div>
+                <div class="rb-stat">
                   <span class="rb-stat-label">Kodsuz / Boş</span>
-                  <span class="rb-stat-value" style="color:#b45309;" id="rb-stat-empty">0</span>
+                  <span class="rb-stat-value" style="color:#64748b;" id="rb-stat-empty">0</span>
                 </div>
               </div>
               <button class="rb-btn-text" id="rb-change-file-btn">Farklı Dosya Seç</button>
@@ -120,8 +130,8 @@
               <div class="rb-config-group">
                 <span class="rb-config-label">SMD Fire / Yedek Payı:</span>
                 <select class="rb-select" id="rb-buffer-select">
-                  <option value="0">%0 (Tam Adet)</option>
-                  <option value="5" selected>%5 (Tavsiye Edilen)</option>
+                  <option value="0" selected>%0 (Tam Adet)</option>
+                  <option value="5">%5 (Tavsiye Edilen)</option>
                   <option value="10">%10</option>
                 </select>
               </div>
@@ -131,10 +141,15 @@
             <div class="rb-filter-bar">
               <div class="rb-tabs">
                 <button class="rb-tab active" data-filter="lcsc" id="rb-tab-lcsc">LCSC Kodlular (<span id="rb-tab-lcsc-count">0</span>)</button>
-                <button class="rb-tab" data-filter="empty" id="rb-tab-empty">Kodsuz / Boş Satırlar (<span id="rb-tab-empty-count">0</span>)</button>
+                <button class="rb-tab" data-filter="in_stock" id="rb-tab-instock">Stokta Olanlar (<span id="rb-tab-instock-count">0</span>)</button>
+                <button class="rb-tab rb-tab-preorder" data-filter="preorder" id="rb-tab-preorder">✈️ Ön Sipariş (<span id="rb-tab-preorder-count">0</span>)</button>
+                <button class="rb-tab" data-filter="empty" id="rb-tab-empty">Kodsuz / Boş (<span id="rb-tab-empty-count">0</span>)</button>
                 <button class="rb-tab" data-filter="all" id="rb-tab-all">Tümü (<span id="rb-tab-all-count">0</span>)</button>
               </div>
               <div class="rb-selection-ops">
+                <button class="rb-btn-text" id="rb-copy-preorder-top-btn" style="display: none; color:#b45309; font-weight:700;">
+                  📋 Ön Siparişleri Kopyala
+                </button>
                 <button class="rb-btn-text" id="rb-select-all-btn">Tümünü Seç</button>
                 <button class="rb-btn-text" id="rb-deselect-all-btn">Kaldır</button>
               </div>
@@ -176,6 +191,10 @@
             </div>
 
             <div class="rb-buttons-group">
+              <button class="rb-btn rb-btn-outline" id="rb-copy-preorder-btn" style="display: none;">
+                ${ICONS.clipboard}
+                <span>Ön Sipariş Listesini Kopyala (<span id="rb-btn-preorder-badge">0</span>)</span>
+              </button>
               <button class="rb-btn rb-btn-secondary" id="rb-fetch-info-btn">
                 ${ICONS.search}
                 <span>1. Robotistan'da Sorgula ve MOQ Hesapla</span>
@@ -300,6 +319,10 @@
       setSelectionForVisible(e.target.checked);
     });
 
+    // Copy Pre-order List buttons
+    overlay.querySelector("#rb-copy-preorder-btn").addEventListener("click", copyPreorderList);
+    overlay.querySelector("#rb-copy-preorder-top-btn").addEventListener("click", copyPreorderList);
+
     // Actions
     overlay.querySelector("#rb-fetch-info-btn").addEventListener("click", fetchRobotistanInfo);
     overlay.querySelector("#rb-add-cart-btn").addEventListener("click", addSelectedToCart);
@@ -365,11 +388,62 @@
       const calc = window.BomParser.calculateOrderQty(item.qtyPerPcb, pcbCount, moq, step, bufferPercent);
 
       item.calculatedNeeded = calc.neededQty;
-      // If user hasn't manually customized targetQty, or on initial calculation:
       item.targetQty = calc.orderQty;
       item.isMoqAdjusted = calc.isMoqAdjusted;
       item.moq = calc.moq;
       item.step = calc.step;
+    }
+  }
+
+  function updateCounts() {
+    if (!bomData || !bomData.items) return;
+
+    const lcscItems = bomData.items.filter((x) => x.hasLcsc);
+    const inStockItems = lcscItems.filter(
+      (x) => x.productInfo && !x.productInfo.isPreorder && x.productInfo.stock > 0
+    );
+    const preorderItems = lcscItems.filter(
+      (x) => x.productInfo?.isPreorder || x.status === "preorder_rejected"
+    );
+    const emptyItems = bomData.items.filter((x) => !x.hasLcsc);
+
+    const lcscTabCount = document.querySelector("#rb-tab-lcsc-count");
+    if (lcscTabCount) lcscTabCount.textContent = lcscItems.length;
+
+    const instockTabCount = document.querySelector("#rb-tab-instock-count");
+    if (instockTabCount) instockTabCount.textContent = inStockItems.length;
+
+    const preorderTabCount = document.querySelector("#rb-tab-preorder-count");
+    if (preorderTabCount) preorderTabCount.textContent = preorderItems.length;
+
+    const emptyTabCount = document.querySelector("#rb-tab-empty-count");
+    if (emptyTabCount) emptyTabCount.textContent = emptyItems.length;
+
+    const allTabCount = document.querySelector("#rb-tab-all-count");
+    if (allTabCount) allTabCount.textContent = bomData.items.length;
+
+    // Summary card stats
+    const statInstock = document.querySelector("#rb-stat-instock");
+    if (statInstock) {
+      statInstock.textContent = inStockItems.length > 0 ? inStockItems.length : "-";
+    }
+    const statPreorder = document.querySelector("#rb-stat-preorder");
+    if (statPreorder) {
+      statPreorder.textContent = preorderItems.length > 0 ? preorderItems.length : (inStockItems.length > 0 ? "0" : "-");
+    }
+
+    // Preorder copy buttons visibility
+    const preorderBtn = document.querySelector("#rb-copy-preorder-btn");
+    const preorderBadge = document.querySelector("#rb-btn-preorder-badge");
+    const preorderTopBtn = document.querySelector("#rb-copy-preorder-top-btn");
+
+    if (preorderItems.length > 0) {
+      if (preorderBtn) preorderBtn.style.display = "inline-flex";
+      if (preorderBadge) preorderBadge.textContent = preorderItems.length;
+      if (preorderTopBtn) preorderTopBtn.style.display = "inline-flex";
+    } else {
+      if (preorderBtn) preorderBtn.style.display = "none";
+      if (preorderTopBtn) preorderTopBtn.style.display = "none";
     }
   }
 
@@ -385,24 +459,30 @@
     document.querySelector("#rb-stat-lcsc").textContent = bomData.partsWithLcsc;
     document.querySelector("#rb-stat-empty").textContent = bomData.uniqueParts - bomData.partsWithLcsc;
 
-    document.querySelector("#rb-tab-lcsc-count").textContent = bomData.partsWithLcsc;
-    document.querySelector("#rb-tab-empty-count").textContent = bomData.uniqueParts - bomData.partsWithLcsc;
-    document.querySelector("#rb-tab-all-count").textContent = bomData.uniqueParts;
-
     const badge = document.querySelector("#rb-btn-badge");
     if (badge) {
       badge.textContent = bomData.partsWithLcsc;
       badge.style.display = "inline-block";
     }
 
+    updateCounts();
     renderTable();
     updateActionStats();
   }
 
   function getVisibleItems() {
     if (!bomData || !bomData.items) return [];
+
     if (activeFilter === "lcsc") {
       return bomData.items.filter((it) => it.hasLcsc);
+    } else if (activeFilter === "in_stock") {
+      return bomData.items.filter(
+        (it) => it.hasLcsc && it.productInfo && !it.productInfo.isPreorder && it.productInfo.stock > 0
+      );
+    } else if (activeFilter === "preorder") {
+      return bomData.items.filter(
+        (it) => it.hasLcsc && (it.productInfo?.isPreorder || it.status === "preorder_rejected")
+      );
     } else if (activeFilter === "empty") {
       return bomData.items.filter((it) => !it.hasLcsc);
     }
@@ -424,13 +504,22 @@
     tbody.innerHTML = "";
 
     if (visibleItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 24px; color:#64748b;">Bu filtreye uygun komponent bulunamadı.</td></tr>`;
+      let emptyMsg = "Bu filtreye uygun komponent bulunamadı.";
+      if (activeFilter === "preorder") {
+        emptyMsg = "Ön sipariş statüsünde veya temin edilecek komponent bulunmuyor.";
+      } else if (activeFilter === "in_stock") {
+        emptyMsg = "Henüz sorgulama yapılmadı veya stokta parça bulunamadı.";
+      }
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 24px; color:#64748b;">${emptyMsg}</td></tr>`;
       return;
     }
 
     for (const item of visibleItems) {
       const tr = document.createElement("tr");
       if (!item.hasLcsc) tr.classList.add("rb-row-empty");
+      if (item.productInfo?.isPreorder || item.status === "preorder_rejected") {
+        tr.classList.add("rb-row-preorder");
+      }
 
       // Status text & badge class
       let statusHtml = "";
@@ -440,11 +529,28 @@
         const price = item.productInfo?.totalPriceWithVat
           ? `${Number(item.productInfo.totalPriceWithVat).toFixed(2)} ₺`
           : "Fiyat Al";
-        const stock = item.productInfo?.stockDisplay || "Mevcut";
+
+        if (item.productInfo?.isPreorder) {
+          statusHtml = `
+            <div>
+              <span class="rb-status-badge rb-status-preorder">✈️ Ön Sipariş (Temin Edilecek)</span>
+              <div class="rb-sub-text" style="color:#b45309; margin-top:2px;">Tedarikçi Stoğu: 0 (${price})</div>
+            </div>
+          `;
+        } else {
+          const stock = item.productInfo?.stockDisplay || "Mevcut";
+          statusHtml = `
+            <div>
+              <span class="rb-status-badge rb-status-found">Stokta (${price})</span>
+              <div class="rb-sub-text" style="color:#15803d; margin-top:2px;">Stok: ${stock}</div>
+            </div>
+          `;
+        }
+      } else if (item.status === "preorder_rejected") {
         statusHtml = `
           <div>
-            <span class="rb-status-badge rb-status-found">Bulundu (${price})</span>
-            <div class="rb-sub-text" style="color:#15803d; margin-top:2px;">Stok: ${stock}</div>
+            <span class="rb-status-badge rb-status-preorder-rejected">✈️ Ön Sipariş (Eklenemedi)</span>
+            <div class="rb-sub-text" style="color:#b45309; margin-top:2px;">Stok 0 - Proforma teklifi alın</div>
           </div>
         `;
       } else if (item.status === "not_found") {
@@ -562,7 +668,7 @@
     let hasPrices = false;
     for (const item of selectedItems) {
       if (item.productInfo && item.productInfo.totalPriceWithVat) {
-        totalPrice += (item.productInfo.totalPriceWithVat * (item.targetQty || 1));
+        totalPrice += item.productInfo.totalPriceWithVat * (item.targetQty || 1);
         hasPrices = true;
       }
     }
@@ -578,7 +684,7 @@
   }
 
   /**
-   * Batch query product data, MOQ, packaging step, price, and stock from Robotistan Pro
+   * Batch query product data, MOQ, packaging step, price, stock, and preorder status from Robotistan Pro
    */
   async function fetchRobotistanInfo() {
     if (isProcessing || !bomData) return;
@@ -630,11 +736,12 @@
 
       done++;
       progressBar.style.width = `${Math.round((done / selectedItems.length) * 100)}%`;
+      updateCounts();
       renderTable();
       updateActionStats();
 
-      // Small throttling delay to avoid aggressive bursts
-      await new Promise((r) => setTimeout(r, 80));
+      // Small delay between requests to be polite to the server
+      await new Promise((r) => setTimeout(r, 60));
     }
 
     setTimeout(() => {
@@ -643,7 +750,49 @@
 
     isProcessing = false;
     btn.disabled = false;
+    updateCounts();
     saveState();
+  }
+
+  /**
+   * Copy out-of-stock / pre-order items list to clipboard for quote request
+   */
+  function copyPreorderList() {
+    if (!bomData) return;
+
+    const preorderItems = bomData.items.filter(
+      (x) => x.hasLcsc && (x.productInfo?.isPreorder || x.status === "preorder_rejected")
+    );
+
+    if (preorderItems.length === 0) {
+      alert("Ön sipariş veya temin edilecek statüsünde komponent bulunmuyor.");
+      return;
+    }
+
+    let text = `=================================================================\n`;
+    text += `ROBOTİSTAN PRO - ÖN SİPARİŞ / TEMİN EDİLECEK PARÇA TALEBİ\n`;
+    text += `Proje: ${bomData.projectName || "KiCad Projesi"}\n`;
+    text += `Hedef Kart Adedi: ${pcbCount} PCB\n`;
+    text += `Oluşturulma Tarihi: ${new Date().toLocaleString("tr-TR")}\n`;
+    text += `=================================================================\n\n`;
+    text += `LCSC Kodu\tParça Değeri\tRobotistan Ürün Adı\tTalep Adedi\tKılıf\tPozisyonlar\n`;
+
+    for (const it of preorderItems) {
+      const name = it.productInfo?.name || it.value || "-";
+      text += `${it.lcsc}\t${it.value || "-"}\t${name}\t${it.targetQty} adet\t${it.footprint || "-"}\t${it.refString || "-"}\n`;
+    }
+
+    text += `\n-----------------------------------------------------------------\n`;
+    text += `Toplam Ön Sipariş Komponent Sayısı: ${preorderItems.length} çeşit\n`;
+    text += `Not: Bu parçalar online sepet sisteminde 'Mevcut Stok: 0' (Temin Edilecek) olduğu için doğrudan sepete eklenememektedir. Kurumsal satış / teklif birimi üzerinden proforma talep edilmelidir.\n`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert(
+        `✓ ${preorderItems.length} adet Ön Sipariş komponenti panoya kopyalandı!\n\nRobotistan Pro satış birimine veya teklif formuna yapıştırarak talep oluşturabilirsiniz.`
+      );
+    }).catch(() => {
+      window.prompt("Ön sipariş listesini kopyalayın (Ctrl+C):", text);
+    });
   }
 
   /**
@@ -662,7 +811,20 @@
       return;
     }
 
-    const confirmMsg = `${itemsToAdd.length} farklı parçayı (toplam ${itemsToAdd.reduce((a, b) => a + b.targetQty, 0)} adet) Robotistan Pro sepetinize eklemek istiyor musunuz?`;
+    const inStockItems = itemsToAdd.filter(
+      (it) => !it.productInfo.isPreorder && it.productInfo.stock > 0
+    );
+    const preorderItems = itemsToAdd.filter(
+      (it) => it.productInfo.isPreorder || it.productInfo.stock <= 0
+    );
+
+    let confirmMsg = `${itemsToAdd.length} seçili parçadan:\n`;
+    confirmMsg += `✓ ${inStockItems.length} adedi stokta ve doğrudan sepete eklenecektir.\n`;
+    if (preorderItems.length > 0) {
+      confirmMsg += `✈️ ${preorderItems.length} adedi 'Ön Sipariş / Temin Edilecek' (Stok: 0) statüsündedir.\n(Robotistan Pro online sepeti 0 stoklu ürünleri reddeder, bu parçalar 'Ön Sipariş Listesi'ne ayrılacaktır.)\n\n`;
+    }
+    confirmMsg += `Stoktaki ürünlerin sepete eklenmesini onaylıyor musunuz?`;
+
     if (!confirm(confirmMsg)) return;
 
     isProcessing = true;
@@ -675,10 +837,20 @@
     progressBar.style.width = "0%";
 
     let addedCount = 0;
+    let preorderSkippedCount = 0;
     let failedCount = 0;
 
     for (let i = 0; i < itemsToAdd.length; i++) {
       const item = itemsToAdd[i];
+
+      // If already known as preorder, skip web cart add attempt to prevent T-Soft error
+      if (item.productInfo.isPreorder || item.productInfo.stock <= 0) {
+        item.status = "preorder_rejected";
+        preorderSkippedCount++;
+        progressBar.style.width = `${Math.round(((i + 1) / itemsToAdd.length) * 100)}%`;
+        renderTable();
+        continue;
+      }
 
       try {
         const res = await window.RobotistanApi.addToCart({
@@ -690,6 +862,10 @@
         if (res.success) {
           item.status = "added";
           addedCount++;
+        } else if (res.isPreorder) {
+          item.status = "preorder_rejected";
+          item.productInfo.isPreorder = true;
+          preorderSkippedCount++;
         } else {
           console.warn(`Parça sepete eklenemedi (${item.lcsc}):`, res.error);
           failedCount++;
@@ -702,16 +878,27 @@
       renderTable();
 
       // Delay between adds so T-Soft session can handle items comfortably
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 180));
     }
 
     isProcessing = false;
     addBtn.disabled = false;
+    updateCounts();
 
     // Show Go to Cart button
-    document.querySelector("#rb-go-cart-btn").style.display = "inline-flex";
+    if (addedCount > 0) {
+      document.querySelector("#rb-go-cart-btn").style.display = "inline-flex";
+    }
 
-    alert(`Tamamlandı!\n✓ ${addedCount} parça başarıyla sepete eklendi.${failedCount > 0 ? `\n⚠ ${failedCount} parça eklenemedi.` : ""}`);
+    let resultMsg = `İşlem Tamamlandı!\n\n✓ ${addedCount} parça başarıyla sepete eklendi.`;
+    if (preorderSkippedCount > 0) {
+      resultMsg += `\n✈️ ${preorderSkippedCount} parça 'Ön Sipariş' (Stok: 0) olduğu için online sepete eklenemedi. Bu parçaları 'Ön Sipariş Listesini Kopyala' butonundan alabilirsiniz.`;
+    }
+    if (failedCount > 0) {
+      resultMsg += `\n⚠ ${failedCount} parça mağaza hatası nedeniyle eklenemedi.`;
+    }
+
+    alert(resultMsg);
     saveState();
   }
 
