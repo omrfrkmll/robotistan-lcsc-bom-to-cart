@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robotistan Pro BOM Aktarıcı</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+          <rect x="9" y="9" width="6" height="6"/>
+          <path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/>
+          <path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="header-title">KiCad BOM to Cart</h1>
+        <p class="header-subtitle">Robotistan Pro Tedarik Asistanı</p>
+      </div>
+    </div>
+
+    <div class="popup-content">
+      <div id="on-site-view" class="view-panel" style="display: none;">
+        <div class="status-box active">
+          <span class="status-indicator"></span>
+          <span>Robotistan Pro sayfasındasınız</span>
+        </div>
+
+        <p class="info-text">
+          Sayfa içi kayan panel üzerinden KiCad BOM dosyanızı yükleyebilir, PCB adedine göre MOQ hesaplatıp tek tıkla sepete ekleyebilirsiniz.
+        </p>
+
+        <button id="open-drawer-btn" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          BOM Panelini Aç
+        </button>
+      </div>
+
+      <div id="off-site-view" class="view-panel">
+        <div class="status-box inactive">
+          <span class="status-indicator"></span>
+          <span>Robotistan Pro sekmesi aktif değil</span>
+        </div>
+
+        <p class="info-text">
+          Eklenti, siparişlerinizi ve sepet oturumunuzu güvenle yönetebilmek için <strong>robotistanpro.com</strong> üzerinde çalışır.
+        </p>
+
+        <button id="go-robotistan-btn" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+          </svg>
+          Robotistan Pro'yu Aç
+        </button>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <span>v1.0.0 • Zen & Firefox Uyumlu</span>
+      <a href="https://github.com" target="_blank" class="footer-link">Yardım</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

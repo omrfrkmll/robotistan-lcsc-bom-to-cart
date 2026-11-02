@@ -1,0 +1,20 @@
+{
+  "name": "robotistan-lcsc-bom-to-cart",
+  "version": "1.0.0",
+  "description": "Zen Browser / Firefox extension to import KiCad BOM and add components to Robotistan Pro cart with MOQ and PCB batch scaling",
+  "main": "background.js",
+  "scripts": {
+    "test:parse": "node test-parser.js",
+    "package": "pnpm dlx web-ext build --overwrite-dest"
+  },
+  "keywords": [
+    "kicad",
+    "bom",
+    "robotistan",
+    "lcsc",
+    "zen-browser",
+    "firefox-extension"
+  ],
+  "author": "ilteray",
+  "license": "MIT"
+}

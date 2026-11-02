@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bgGrad)"/>
+  
+  <!-- PCB Circuit Trace pattern subtle -->
+  <path d="M 24 38 L 44 38 L 54 48" stroke="#334155" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <circle cx="24" cy="38" r="4" fill="#f97316"/>
+  <path d="M 104 90 L 84 90 L 74 80" stroke="#334155" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <circle cx="104" cy="90" r="4" fill="#f97316"/>
+
+  <!-- Cart Body -->
+  <path d="M 32 46 L 42 46 L 52 74 L 92 74 L 100 52 L 48 52" 
+        stroke="#f97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- IC Component inside cart -->
+  <rect x="58" y="56" width="24" height="14" rx="2" fill="#38bdf8"/>
+  <rect x="62" y="52" width="3" height="4" fill="#cbd5e1"/>
+  <rect x="68" y="52" width="3" height="4" fill="#cbd5e1"/>
+  <rect x="74" y="52" width="3" height="4" fill="#cbd5e1"/>
+
+  <!-- Cart Wheels -->
+  <circle cx="56" cy="88" r="7" fill="#f8fafc"/>
+  <circle cx="56" cy="88" r="3" fill="#0f172a"/>
+  <circle cx="86" cy="88" r="7" fill="#f8fafc"/>
+  <circle cx="86" cy="88" r="3" fill="#0f172a"/>
+</svg>

@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Robotistan Pro - KiCad BOM to Cart",
+  "version": "1.0.0",
+  "description": "KiCad BOM listelerini (ibom.html veya CSV) Robotistan Pro üzerinde açıp PCB adedine ve MOQ/paket katlarına göre otomatik sepete ekler.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://*.robotistanpro.com/*",
+    "*://robotistanpro.com/*"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.robotistanpro.com/*",
+        "*://robotistanpro.com/*"
+      ],
+      "js": [
+        "lib/lz-string.js",
+        "lib/bom-parser.js",
+        "lib/robotistan-api.js",
+        "content/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Robotistan Pro BOM Aktarıcı",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "robotistan-bom-to-cart@ilteray",
+      "strict_min_version": "109.0"
+    }
+  }
+}
