@@ -622,17 +622,15 @@
       const priceTarget = findPriceTarget(container);
 
       if (priceTarget) {
-        // Place badge directly inside the pricing cell/column
+        // Place badge directly inside the pricing cell/column, ABOVE the visible price
         badgeRow.classList.add("rb-price-badge-row");
         const innerPrice = priceTarget.querySelector(
           ".price-ladder, .ladder-price, .price-list, .table-price, .product-price, .price"
         );
         if (innerPrice && innerPrice.parentElement) {
-          if (innerPrice.nextSibling) {
-            innerPrice.parentElement.insertBefore(badgeRow, innerPrice.nextSibling);
-          } else {
-            innerPrice.parentElement.appendChild(badgeRow);
-          }
+          innerPrice.parentElement.insertBefore(badgeRow, innerPrice);
+        } else if (priceTarget.firstChild) {
+          priceTarget.insertBefore(badgeRow, priceTarget.firstChild);
         } else {
           priceTarget.appendChild(badgeRow);
         }

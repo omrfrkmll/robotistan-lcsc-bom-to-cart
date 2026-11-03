@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Robotistan Pro - Tedarik Asistanı",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "LCSC üzerinde gezinirken Robotistan Pro canlı stok ve fiyat rozetleri gösterir; KiCad BOM listelerini (ibom.html veya CSV) Robotistan Pro sepetine MOQ katlarıyla aktarır.",
   "permissions": [
     "storage"

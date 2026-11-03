@@ -1,6 +1,6 @@
 {
   "name": "robotistan-supply-assistant",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Zen Browser / Firefox WebExtension for Robotistan Pro & LCSC: Live LCSC stock badges, 1-click cart addition, KiCad BOM to Cart automation, MOQ scaling, and proforma pre-order handling",
   "main": "background.js",
   "scripts": {

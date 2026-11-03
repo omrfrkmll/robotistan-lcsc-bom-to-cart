@@ -12,12 +12,22 @@
   line-height: 1 !important;
 }
 
-/* Badge in Pricing Column */
+/* Badge in Pricing Column (Centered & Above visible price) */
 .rb-price-badge-row {
-  margin-top: 4px !important;
-  margin-bottom: 2px !important;
-  display: block !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 3px auto 6px auto !important;
+  text-align: center !important;
   clear: both !important;
+  box-sizing: border-box !important;
+}
+
+.rb-price-badge-row .rb-stock-badge {
+  margin: 0 auto !important;
+  text-align: center !important;
 }
 
 /* Base Badge */
