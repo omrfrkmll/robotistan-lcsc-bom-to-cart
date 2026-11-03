@@ -14,14 +14,18 @@ Bu WebExtension eklentisi, elektronik tasarım ve prototipleme süreçlerinde pa
 ## 🚀 Temel Özellikler
 
 ### 1. LCSC Canlı Stok & Fiyat Entegrasyonu (`lcsc.com`)
+- **Fiyat Kolonu İçine Rozet Yerleşimi:** Rozetler artık sadece ürün başlığının altında değil, doğrudan LCSC tablosunun **"Pricing / Price"** kolonunun içine yerleştirilir. Böylece LCSC fiyatı ile Robotistan fiyatını tek bakışta yan yana kıyaslayabilirsiniz.
+- **Çift Para Birimi Gösterimi (USD $ & TL ₺):** Robotistan'ın kâr marjını ve kur farkını anında analiz edebilmeniz için fiyatlar hem Dolar hem de TL cinsinden (örn. `~$0.026 / 0.93 ₺`) gösterilir.
+- **20-30 Sonuç Çıkan Durumlarda Sıkı Eşleşme (Strict Boundary Matching):** Arama motorunda benzer prefix nedeniyle 20-30 ürün listelendiğinde parçanın "Yok" sanılmasını engeller; token boundary regex ile arar ve gerekirse otomatik olarak katalog sayfalarını (1..4) tarar.
+- **Arka Planda "Yok" Parçaları Yeniden Tarama:** Önceki aramalarda bulunamamış ("Yok") görünen parçalar önbellekte kilitli kalmaz; 5 dakikalık TTL ile arka planda derin aramayla taranır ve mağazada mevcutsa rozet otomatik olarak yeşile döner.
 - **Otomatik LCSC Kodu Algılama:** Arama sonuçları, kategori tabloları ve ürün sayfalarındaki LCSC parça kodlarını (`C...`) otomatik yakalar.
 - **Canlı Durum Rozetleri:**
-  - 🟢 **Stokta:** Robotistan Pro'daki güncel stok adedi ve seçilen para biriminde birim fiyatı.
+  - 🟢 **Stokta:** Robotistan Pro'daki güncel stok adedi ve çift para biriminde birim fiyatı (`~$0.026 / 0.93 ₺`).
   - ✈️ **Ön Sipariş (Temin Edilecek):** Robotistan'da kayıtlı ancak temin sürecinde olan parçalar.
   - 🔴 **Tükendi:** Robotistan'da stoku kalmamış ürünler.
   - ⚪ **Bulunamadı:** Henüz Robotistan Pro kataloğuna eklenmemiş ürünler.
 - **İnteraktif Önizleme & Sepete Ekleme Kartı (Hover Portal Tooltip):**
-  - Rozetin üzerine gelindiğinde ürün adı, güncel stok, MOQ ve paket katsayısı, birim fiyatı ve toplam tutarı gösteren dinamik bir kart açılır.
+  - Rozetin üzerine gelindiğinde ürün adı, güncel stok, KDV dahil & hariç fiyatlar, referans USD/TRY kuru, MOQ ve paket katsayısını gösteren dinamik bir kart açılır.
   - **"🛒 Robotistan Sepetime Ekle" Butonu:** LCSC sayfasından hiç ayrılmadan istediğiniz adedi belirleyip Robotistan Pro sepetinize doğrudan ekleyebilirsiniz.
 - **Para Birimi Seçici:** Fiyatları popup üzerinden **TL (₺)**, **USD ($)** veya **EUR (€)** cinsinden görüntüleyebilirsiniz.
 

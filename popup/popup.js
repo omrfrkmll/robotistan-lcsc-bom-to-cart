@@ -22,6 +22,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const currencyBtns = document.querySelectorAll(".currency-btn");
   const cacheStatsText = document.getElementById("cache-stats-text");
   const clearCacheBtn = document.getElementById("clear-cache-btn");
+  const usdRateText = document.getElementById("usd-rate-text");
+  const rescanBtn = document.getElementById("rescan-btn");
 
   // 1. Detect Active Tab Context
   let activeTab = null;
@@ -87,6 +89,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           btn.classList.toggle("active", btn.dataset.currency === res.currency);
         });
       }
+      if (usdRateText && res.usdTryRate) {
+        usdRateText.textContent = `Kur: 1 $ = ${Number(res.usdTryRate).toFixed(2)} ₺`;
+      }
       if (cacheStatsText && res.cacheCount !== undefined) {
         cacheStatsText.textContent = `Önbellek: ${res.cacheCount} ürün`;
       }
@@ -101,6 +106,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       browserAPI.runtime.sendMessage({ action: "SET_CURRENCY", currency: cur });
     });
   });
+
+  if (rescanBtn) {
+    rescanBtn.addEventListener("click", () => {
+      rescanBtn.disabled = true;
+      rescanBtn.textContent = "Taranıyor...";
+      browserAPI.runtime.sendMessage({ action: "CLEAR_CACHE" }, () => {
+        if (cacheStatsText) cacheStatsText.textContent = "Önbellek: 0 ürün";
+        if (activeTab?.id) {
+          browserAPI.tabs.reload(activeTab.id);
+        }
+        setTimeout(() => {
+          rescanBtn.disabled = false;
+          rescanBtn.textContent = "Yenilendi!";
+          setTimeout(() => {
+            rescanBtn.textContent = "Yeniden Tara";
+          }, 1500);
+        }, 500);
+      });
+    });
+  }
 
   if (clearCacheBtn) {
     clearCacheBtn.addEventListener("click", () => {
@@ -140,7 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       quickSearchResult.innerHTML = `
         <div class="res-header">
           <span class="res-badge ${badgeClass}">${badgeText}</span>
-          <span class="res-price">${p.price_with_vat || "-"}</span>
+          <span class="res-price">${p.price_dual || p.price_with_vat || "-"}</span>
         </div>
         <div class="res-title">${p.title || p.code}</div>
         <div class="res-details">

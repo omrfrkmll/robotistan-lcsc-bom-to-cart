@@ -47,7 +47,8 @@ async function run() {
 
   for (const { code, label } of testCases) {
     console.log(`[TEST] ${label} (${code}):`);
-    const res = await RobotistanApi.searchProduct(code, { deepSearch: true });
+    // Test automatic escalation (deepSearch: false - will escalate on candidate prefix matches)
+    const res = await RobotistanApi.searchProduct(code, { deepSearch: false });
     if (res.success && res.product) {
       const p = res.product;
       console.log(`  ✓ Product Found: ${p.name} (ID: ${p.id})`);

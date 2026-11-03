@@ -90,8 +90,15 @@
         </div>
         <div class="rb-tooltip-title">${escapeHtml(p.title || "")}</div>
         <div class="rb-tooltip-details">
-          <div><span>KDV Dahil:</span> <strong>${escapeHtml(p.price_with_vat || "-")}</strong></div>
-          ${p.price_without_vat ? `<div><span>KDV Hariç:</span> <strong>${escapeHtml(p.price_without_vat)} ${escapeHtml(p.currency || "TL")}</strong></div>` : ""}
+          <div class="rb-tooltip-price-row">
+            <span>KDV Dahil:</span>
+            <strong class="rb-highlight-price">${escapeHtml(p.price_tl_formatted || p.price_with_vat || "-")} <small style="color:#94a3b8; font-weight:normal;">(${escapeHtml(p.price_usd_formatted || "")})</small></strong>
+          </div>
+          <div class="rb-tooltip-price-row">
+            <span>KDV Hariç:</span>
+            <strong>${escapeHtml(p.price_tl_no_vat_formatted || p.price_without_vat || "-")} <small style="color:#94a3b8; font-weight:normal;">(${escapeHtml(p.price_usd_no_vat_formatted || "")})</small></strong>
+          </div>
+          ${p.rate ? `<div><span>Referans Kur:</span> <strong>1 USD = ${Number(p.rate).toFixed(2)} ₺</strong></div>` : ""}
           <div><span>Paket Kuralı:</span> <strong>${escapeHtml(p.stock_unit || `Adet ${defaultQty}-${stepQty}`)}</strong></div>
           <div><span>LCSC / Stok Kodu:</span> <strong>${escapeHtml(p.code || code)}</strong></div>
         </div>
@@ -123,7 +130,7 @@
         </div>
         <div class="rb-tooltip-title">${escapeHtml(p.title || "")}</div>
         <div class="rb-tooltip-details">
-          <div><span>Birim Fiyat:</span> <strong>${escapeHtml(p.price_with_vat || "Belirtilmemiş")}</strong></div>
+          <div><span>Birim Fiyat:</span> <strong>${escapeHtml(p.price_tl_formatted || p.price_with_vat || "Belirtilmemiş")} ${p.price_usd_formatted ? `<small style="color:#94a3b8; font-weight:normal;">(${escapeHtml(p.price_usd_formatted)})</small>` : ""}</strong></div>
           <div><span>Tedarikçi Stoğu:</span> <strong style="color:#f59e0b;">0 (Temin Edilecek)</strong></div>
           <div><span>Paket Kuralı:</span> <strong>${escapeHtml(p.stock_unit || "-")}</strong></div>
         </div>
@@ -326,19 +333,29 @@
       const p = result.product;
       badge.classList.add("rb-badge-in-stock");
       badge.href = p.url || `https://robotistanpro.com/arama?q=${encodeURIComponent(code)}`;
-      const priceText = p.price_with_vat || (p.price_without_vat ? `${Number(p.price_without_vat).toFixed(2)} TL` : "Stokta");
+
+      const usdText = p.price_usd_formatted || (p.price_usd ? `$${Number(p.price_usd).toFixed(3)}` : "");
+      const tlText =
+        p.price_tl_formatted ||
+        p.price_with_vat ||
+        (p.price_without_vat ? `${Number(p.price_without_vat).toFixed(2)} TL` : "Stokta");
 
       badge.innerHTML = `
         <span class="rb-status-dot"></span>
-        <span class="rb-badge-text">${priceText}</span>
+        <span class="rb-badge-text">
+          ${usdText ? `<span class="rb-price-usd">${escapeHtml(usdText)}</span><span class="rb-price-sep">/</span>` : ""}
+          <span class="rb-price-tl">${escapeHtml(tlText)}</span>
+        </span>
       `;
     } else if (result.status === "PREORDER" && result.product) {
+      const p = result.product;
       badge.classList.add("rb-badge-preorder");
       badge.href = result.product.url || `https://robotistanpro.com/arama?q=${encodeURIComponent(code)}`;
+      const usdText = p.price_usd_formatted || "";
 
       badge.innerHTML = `
         <span class="rb-status-dot"></span>
-        <span class="rb-badge-text">✈️ Ön Sipariş</span>
+        <span class="rb-badge-text">✈️ Ön Sipariş ${usdText ? `<small class="rb-badge-subprice">(${escapeHtml(usdText)})</small>` : ""}</span>
       `;
     } else if (result.status === "OUT_OF_STOCK" && result.product) {
       badge.classList.add("rb-badge-out-of-stock");
@@ -425,6 +442,102 @@
     }
   }
 
+  /**
+   * Locate the Pricing cell / element inside an LCSC table row or card.
+   * Allows placing the Robotistan stock/price badge directly next to or inside the LCSC price column.
+   */
+  function findPriceTarget(container) {
+    if (!container) return null;
+
+    // 1. If container is a table row (tr) or contains td cells
+    const tds = container.querySelectorAll("td");
+    if (tds && tds.length > 0) {
+      // Direct class or attribute match
+      for (const td of tds) {
+        if (
+          td.classList.contains("col-price") ||
+          td.classList.contains("price") ||
+          td.classList.contains("product-price") ||
+          (td.getAttribute("data-label") && /price/i.test(td.getAttribute("data-label"))) ||
+          td.querySelector(".price-ladder, .ladder-price, .price-list, .product-price")
+        ) {
+          return td;
+        }
+      }
+
+      // Check for price formatted text with '$' or 'US$'
+      for (const td of tds) {
+        if (td.querySelector("button, input, select, .v-btn")) continue;
+        const txt = td.textContent || "";
+        if (/(?:\$|US\$)\s*\d+[\.,]\d+/i.test(txt)) {
+          return td;
+        }
+      }
+
+      // Fallback: cell containing '$' without input fields
+      for (const td of tds) {
+        if (td.textContent.includes("$") && !td.querySelector("input")) {
+          return td;
+        }
+      }
+    }
+
+    // 2. If container is a card or mobile layout
+    const cardPrice = container.querySelector(
+      ".price-wrap, .price-box, .product-price, .ladder-price, .price-ladder, .price"
+    );
+    if (cardPrice) return cardPrice;
+
+    // Search any child element in card with '$'
+    const allEls = container.querySelectorAll("div, span, p");
+    for (const el of allEls) {
+      if (el.children.length === 0 && /(?:\$|US\$)\s*\d+[\.,]\d+/i.test(el.textContent)) {
+        return el.parentElement || el;
+      }
+    }
+
+    return null;
+  }
+
+  // Automatic background re-scanner for items currently marked NOT_FOUND ("Yok")
+  let reScanTimer = null;
+  const rescannedInSession = new Set();
+  function scheduleNotFoundRescan() {
+    if (reScanTimer) clearTimeout(reScanTimer);
+    reScanTimer = setTimeout(() => {
+      const notFoundBadges = document.querySelectorAll(".rb-stock-badge.rb-badge-not-found");
+      const toRescan = [];
+      notFoundBadges.forEach((b) => {
+        const c = b.getAttribute("data-rb-code");
+        if (c && !rescannedInSession.has(c)) {
+          rescannedInSession.add(c);
+          toRescan.push(c);
+        }
+      });
+      if (toRescan.length > 0) {
+        console.log(`[Robotistan Supply Assistant] Arka planda ${toRescan.length} adet 'Yok' parça yeniden taranıyor:`, toRescan);
+        browserAPI.runtime.sendMessage({
+          action: "RESCAN_CODES",
+          codes: toRescan
+        });
+      }
+    }, 2000);
+  }
+
+  // Listen for background stock updates (e.g. from background re-scan or live discovery)
+  browserAPI.runtime.onMessage.addListener((message) => {
+    if (message.action === "STOCK_UPDATE" && message.data) {
+      const entry = message.data;
+      const code = entry.query;
+      requestedCodes.set(code, entry);
+      const badges = document.querySelectorAll(`.rb-stock-badge[data-rb-code="${code}"]`);
+      badges.forEach((b) => {
+        viewportObserver.unobserve(b);
+        updateBadgeElement(b, entry);
+      });
+    }
+  });
+
   function scanAndInject() {
     // Select product containers across LCSC table and card layouts
     const containers = document.querySelectorAll(
@@ -506,50 +619,69 @@
       badgeRow.className = "rb-badge-row";
       badgeRow.appendChild(badge);
 
-      const textColumn = container.querySelector(".ml-3") || (cbhLink ? cbhLink.closest(".ml-3") : null);
+      const priceTarget = findPriceTarget(container);
 
-      if (textColumn) {
-        let lcscBlock = cbhLink;
-        while (
-          lcscBlock &&
-          lcscBlock.parentElement &&
-          lcscBlock.parentElement !== textColumn &&
-          lcscBlock.parentElement !== container
-        ) {
-          lcscBlock = lcscBlock.parentElement;
+      if (priceTarget) {
+        // Place badge directly inside the pricing cell/column
+        badgeRow.classList.add("rb-price-badge-row");
+        const innerPrice = priceTarget.querySelector(
+          ".price-ladder, .ladder-price, .price-list, .table-price, .product-price, .price"
+        );
+        if (innerPrice && innerPrice.parentElement) {
+          if (innerPrice.nextSibling) {
+            innerPrice.parentElement.insertBefore(badgeRow, innerPrice.nextSibling);
+          } else {
+            innerPrice.parentElement.appendChild(badgeRow);
+          }
+        } else {
+          priceTarget.appendChild(badgeRow);
         }
+      } else {
+        // Fallback: Position under MPN / LCSC code
+        const textColumn = container.querySelector(".ml-3") || (cbhLink ? cbhLink.closest(".ml-3") : null);
 
-        if (lcscBlock && lcscBlock.parentElement === textColumn) {
-          if (lcscBlock.nextSibling) {
-            textColumn.insertBefore(badgeRow, lcscBlock.nextSibling);
+        if (textColumn) {
+          let lcscBlock = cbhLink;
+          while (
+            lcscBlock &&
+            lcscBlock.parentElement &&
+            lcscBlock.parentElement !== textColumn &&
+            lcscBlock.parentElement !== container
+          ) {
+            lcscBlock = lcscBlock.parentElement;
+          }
+
+          if (lcscBlock && lcscBlock.parentElement === textColumn) {
+            if (lcscBlock.nextSibling) {
+              textColumn.insertBefore(badgeRow, lcscBlock.nextSibling);
+            } else {
+              textColumn.appendChild(badgeRow);
+            }
           } else {
             textColumn.appendChild(badgeRow);
           }
         } else {
-          textColumn.appendChild(badgeRow);
-        }
-      } else {
-        // Fallback: Find target element to insert right after
-        let targetEl = cbhLink;
-        if (!targetEl) {
-          const detailLinks = container.querySelectorAll('a[href*="/product-detail/"]');
-          for (const l of detailLinks) {
-            if (!l.querySelector("img") && l.textContent.trim()) {
-              targetEl = l;
-              break;
+          let targetEl = cbhLink;
+          if (!targetEl) {
+            const detailLinks = container.querySelectorAll('a[href*="/product-detail/"]');
+            for (const l of detailLinks) {
+              if (!l.querySelector("img") && l.textContent.trim()) {
+                targetEl = l;
+                break;
+              }
             }
           }
-        }
 
-        if (targetEl) {
-          const targetBlock = targetEl.closest("div, p, span") || targetEl;
-          if (targetBlock.nextSibling) {
-            targetBlock.parentNode.insertBefore(badgeRow, targetBlock.nextSibling);
+          if (targetEl) {
+            const targetBlock = targetEl.closest("div, p, span") || targetEl;
+            if (targetBlock.nextSibling) {
+              targetBlock.parentNode.insertBefore(badgeRow, targetBlock.nextSibling);
+            } else {
+              targetBlock.parentNode.appendChild(badgeRow);
+            }
           } else {
-            targetBlock.parentNode.appendChild(badgeRow);
+            container.appendChild(badgeRow);
           }
-        } else {
-          container.appendChild(badgeRow);
         }
       }
 
@@ -565,6 +697,9 @@
     if (newItems.length > 0) {
       console.log(`[Robotistan Supply Assistant] ${newItems.length} yeni LCSC ürününe rozet eklendi.`);
     }
+
+    // Schedule background re-scan of any items marked "NOT_FOUND"
+    scheduleNotFoundRescan();
 
     // Batch query background cache for discovered items
     if (uncachedCodes.size > 0) {
@@ -624,16 +759,23 @@
         const defaultQty = p.moq || 1;
         const stepQty = p.step || 1;
 
+        const usdFormatted = p.price_usd_formatted || (p.price_usd ? `$${Number(p.price_usd).toFixed(3)}` : "");
+        const tlFormatted = p.price_tl_formatted || p.price_with_vat || "";
+
         body.innerHTML = `
           <div class="rb-detail-row">
-            <div class="rb-detail-price">${escapeHtml(p.price_with_vat || "")}</div>
+            <div class="rb-detail-price">
+              ${escapeHtml(tlFormatted)}
+              ${usdFormatted ? `<span style="font-size: 13px; color: #94a3b8; font-weight: normal; margin-left: 6px;">(${escapeHtml(usdFormatted)})</span>` : ""}
+            </div>
             <div class="rb-stock-badge rb-badge-in-stock" style="margin-left:0;">
               <span class="rb-status-dot"></span>
               <span>Stokta Var</span>
             </div>
           </div>
           <div class="rb-detail-meta">
-            <div><span>KDV Hariç:</span> <strong>${p.price_without_vat ? `${Number(p.price_without_vat).toFixed(2)} ${p.currency || "TL"}` : "-"}</strong></div>
+            <div><span>KDV Hariç:</span> <strong>${escapeHtml(p.price_tl_no_vat_formatted || p.price_without_vat || "-")} ${p.price_usd_no_vat_formatted ? `<small style="color:#94a3b8; font-weight:normal;">(${escapeHtml(p.price_usd_no_vat_formatted)})</small>` : ""}</strong></div>
+            ${p.rate ? `<div><span>Referans Kur:</span> <strong>1 USD = ${Number(p.rate).toFixed(2)} ₺</strong></div>` : ""}
             <div><span>Paket Kuralı:</span> <strong>${escapeHtml(p.stock_unit || `Adet ${defaultQty}-${stepQty}`)}</strong></div>
             <div><span>Robotistan Ürün Adı:</span> <strong>${escapeHtml(p.title || "")}</strong></div>
           </div>

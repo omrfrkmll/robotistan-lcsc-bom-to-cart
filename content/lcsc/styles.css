@@ -12,6 +12,14 @@
   line-height: 1 !important;
 }
 
+/* Badge in Pricing Column */
+.rb-price-badge-row {
+  margin-top: 4px !important;
+  margin-bottom: 2px !important;
+  display: block !important;
+  clear: both !important;
+}
+
 /* Base Badge */
 .rb-stock-badge {
   display: inline-flex !important;
@@ -37,6 +45,29 @@
   text-decoration: none !important;
   opacity: 0.9 !important;
   transform: translateY(-1px) !important;
+}
+
+/* Dual Currency Typography in Badge */
+.rb-price-usd {
+  color: #047857 !important;
+  font-weight: 700 !important;
+}
+
+.rb-price-sep {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+  margin: 0 2px !important;
+}
+
+.rb-price-tl {
+  color: #15803d !important;
+  font-weight: 600 !important;
+}
+
+.rb-badge-subprice {
+  font-size: 10px !important;
+  color: #b45309 !important;
+  margin-left: 2px !important;
 }
 
 /* Status Dot Indicator */
@@ -188,6 +219,17 @@
   gap: 3px !important;
   font-size: 11px !important;
   margin-bottom: 10px !important;
+}
+
+.rb-tooltip-price-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+}
+
+.rb-highlight-price {
+  color: #10b981 !important;
+  font-weight: 700 !important;
 }
 
 .rb-tooltip-details span {

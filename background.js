@@ -10,11 +10,15 @@ const browserAPI = typeof browser !== "undefined" ? browser : chrome;
 // Cache settings
 const CACHE_KEY = "rb_stock_cache";
 const SETTINGS_KEY = "rb_settings";
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const POSITIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for verified items
+const NOT_FOUND_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes for NOT_FOUND (re-evaluates quickly)
+const RATE_STORAGE_KEY = "rb_usd_try_rate";
+const RATE_TIME_KEY = "rb_rate_time";
 
 let memoryCache = new Map();
 let currentCurrency = "TL";
 let isStrictMatch = true;
+let usdTryRate = 35.0; // Sane fallback until updated via live API
 
 // Concurrency queue & in-flight tracking
 const MAX_CONCURRENT_REQUESTS = 6;
@@ -22,9 +26,67 @@ let activeRequestsCount = 0;
 const requestQueue = [];
 const inFlightRequests = new Map();
 
-// Initialize cache and settings
+// Live USD/TRY Exchange Rate Fetcher
+async function fetchUsdRate(force = false) {
+  try {
+    const data = await browserAPI.storage.local.get([RATE_STORAGE_KEY, RATE_TIME_KEY]);
+    const now = Date.now();
+    if (!force && data[RATE_STORAGE_KEY] && data[RATE_TIME_KEY] && (now - data[RATE_TIME_KEY] < 6 * 60 * 60 * 1000)) {
+      usdTryRate = parseFloat(data[RATE_STORAGE_KEY]);
+      return;
+    }
+
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.rates && json.rates.TRY) {
+        usdTryRate = parseFloat(json.rates.TRY);
+        await browserAPI.storage.local.set({
+          [RATE_STORAGE_KEY]: usdTryRate,
+          [RATE_TIME_KEY]: now
+        });
+        console.log(`[Robotistan Supply Assistant] Güncel USD/TRY kuru: ${usdTryRate}`);
+      }
+    }
+  } catch (e) {
+    console.warn("[Robotistan Supply Assistant] Kur çekilemedi, varsayılan:", usdTryRate, e);
+  }
+}
+
+// Currency format helpers
+function formatUsd(amount) {
+  if (typeof amount !== "number" || isNaN(amount) || amount <= 0) return "$0.00";
+  if (amount < 0.01) return "$" + amount.toFixed(4);
+  if (amount < 1.0) return "$" + amount.toFixed(3);
+  return "$" + amount.toFixed(2);
+}
+
+function formatTl(amount) {
+  if (typeof amount !== "number" || isNaN(amount) || amount <= 0) return "0.00 ₺";
+  return amount.toFixed(2) + " ₺";
+}
+
+// Broadcast stock update to open browser tabs (e.g. LCSC pages)
+function broadcastStockUpdate(result) {
+  try {
+    browserAPI.tabs.query({}, (tabs) => {
+      for (const tab of tabs || []) {
+        if (tab.id) {
+          browserAPI.tabs.sendMessage(tab.id, {
+            action: "STOCK_UPDATE",
+            data: result
+          }).catch(() => {});
+        }
+      }
+    });
+  } catch (e) {}
+}
+
+// Initialize cache, exchange rate, and settings
 (async function init() {
   try {
+    await fetchUsdRate();
+
     const data = await browserAPI.storage.local.get([CACHE_KEY, SETTINGS_KEY]);
     if (data[SETTINGS_KEY]) {
       currentCurrency = data[SETTINGS_KEY].currency || "TL";
@@ -33,13 +95,15 @@ const inFlightRequests = new Map();
     if (data[CACHE_KEY]) {
       const now = Date.now();
       for (const [code, entry] of Object.entries(data[CACHE_KEY])) {
-        if (now - entry.timestamp < CACHE_TTL_MS) {
+        // Purge old NOT_FOUND entries on startup so new matching rules re-evaluate them immediately!
+        if (entry.status === "NOT_FOUND") continue;
+        if (now - entry.timestamp < POSITIVE_CACHE_TTL_MS) {
           memoryCache.set(code, entry);
         }
       }
     }
     console.log(
-      `[Robotistan Supply Assistant] Arka plan başlatıldı. Önbellekte ${memoryCache.size} ürün var. Para birimi: ${currentCurrency}`
+      `[Robotistan Supply Assistant] Arka plan başlatıldı. Önbellekte ${memoryCache.size} onaylı ürün var. Kur: 1 USD = ${usdTryRate} TL`
     );
   } catch (err) {
     console.error("[Robotistan Supply Assistant] Başlatma hatası:", err);
@@ -90,17 +154,20 @@ function processQueue() {
     });
 }
 
-function queueStockCheck(code, highPriority = false, deepSearch = false) {
+function queueStockCheck(code, highPriority = false, deepSearch = false, forceRefresh = false) {
   return new Promise((resolve, reject) => {
     const cleanCode = code.trim().toUpperCase();
 
-    // Check memory cache
+    // Check memory cache with differentiated TTLs
     const cached = memoryCache.get(cleanCode);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return resolve(cached);
+    if (cached && !forceRefresh) {
+      const ttl = cached.status === "NOT_FOUND" ? NOT_FOUND_CACHE_TTL_MS : POSITIVE_CACHE_TTL_MS;
+      if (Date.now() - cached.timestamp < ttl) {
+        return resolve(cached);
+      }
     }
 
-    if (inFlightRequests.has(cleanCode)) {
+    if (inFlightRequests.has(cleanCode) && !forceRefresh) {
       return inFlightRequests.get(cleanCode).then(resolve).catch(reject);
     }
 
@@ -115,7 +182,7 @@ function queueStockCheck(code, highPriority = false, deepSearch = false) {
 }
 
 /**
- * Fetch product data using unified RobotistanApi
+ * Fetch product data using unified RobotistanApi with Dual Currency calculation
  */
 async function fetchStockData(cleanCode, deepSearch = false) {
   try {
@@ -139,19 +206,23 @@ async function fetchStockData(cleanCode, deepSearch = false) {
         status = "OUT_OF_STOCK";
       }
 
-      let priceWithVatText = "";
-      if (typeof p.totalPriceWithVat === "number") {
-        priceWithVatText = `${p.totalPriceWithVat.toFixed(2)} TL`;
-      } else if (p.totalPriceWithVat) {
-        priceWithVatText = `${p.totalPriceWithVat} TL`;
-      }
+      // Calculate Dual Currency (USD & TL)
+      const rate = usdTryRate > 0 ? usdTryRate : 35.0;
+      const tlWithVat =
+        typeof p.totalPriceWithVat === "number"
+          ? p.totalPriceWithVat
+          : parseFloat(String(p.totalPriceWithVat).replace(",", ".")) || 0;
+      const tlWithoutVat =
+        typeof p.price === "number"
+          ? p.price
+          : parseFloat(String(p.price).replace(",", ".")) || 0;
 
-      let priceWithoutVatText = "";
-      if (typeof p.price === "number") {
-        priceWithoutVatText = `${p.price.toFixed(2)}`;
-      } else if (p.price) {
-        priceWithoutVatText = `${p.price}`;
-      }
+      const usdWithVat = tlWithVat > 0 ? tlWithVat / rate : 0;
+      const usdWithoutVat = tlWithoutVat > 0 ? tlWithoutVat / rate : 0;
+
+      const usdFormatted = formatUsd(usdWithVat);
+      const tlFormatted = formatTl(tlWithVat);
+      const priceDualDisplay = `${usdFormatted} / ${tlFormatted}`;
 
       result.status = status;
       result.product = {
@@ -159,18 +230,36 @@ async function fetchStockData(cleanCode, deepSearch = false) {
         title: p.name || cleanCode,
         code: p.code || cleanCode,
         supplier_code: p.supplierCode || cleanCode,
-        price_without_vat: priceWithoutVatText,
-        price_with_vat: priceWithVatText,
+        price_tl: tlWithVat,
+        price_tl_no_vat: tlWithoutVat,
+        price_usd: usdWithVat,
+        price_usd_no_vat: usdWithoutVat,
+        price_without_vat: `${tlWithoutVat.toFixed(2)} TL`,
+        price_with_vat: `${tlWithVat.toFixed(2)} TL`,
+        price_usd_formatted: usdFormatted,
+        price_usd_no_vat_formatted: formatUsd(usdWithoutVat),
+        price_tl_formatted: tlFormatted,
+        price_tl_no_vat_formatted: formatTl(tlWithoutVat),
+        price_dual: priceDualDisplay,
+        rate: rate,
         currency: p.currency || currentCurrency,
         stock: p.stock,
         isPreorder: p.isPreorder,
-        stock_status: status === "IN_STOCK" ? "Stokta Var" : status === "PREORDER" ? "Temin Edilecek (Ön Sipariş)" : "Tükendi",
+        stock_status:
+          status === "IN_STOCK"
+            ? "Stokta Var"
+            : status === "PREORDER"
+            ? "Temin Edilecek (Ön Sipariş)"
+            : "Tükendi",
         stock_unit: p.stockUnit || `Adet ${res.moq || 1}-${res.step || 1}`,
         moq: res.moq || 1,
         step: res.step || 1,
         url: p.url,
         image_url: p.image
       };
+
+      // Broadcast found stock data to active LCSC tabs so badges update live
+      broadcastStockUpdate(result);
     }
 
     memoryCache.set(cleanCode, result);
@@ -193,10 +282,28 @@ async function fetchStockData(cleanCode, deepSearch = false) {
 // Message Listener
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "CHECK_STOCK") {
-    queueStockCheck(message.code, message.priority, message.deepSearch || false)
+    queueStockCheck(
+      message.code,
+      message.priority,
+      message.deepSearch || false,
+      message.forceRefresh || false
+    )
       .then((res) => sendResponse(res))
       .catch((err) => sendResponse({ status: "NOT_FOUND", error: err.message }));
     return true; // asynchronous response
+  }
+
+  if (message.action === "RESCAN_CODES") {
+    const codes = Array.isArray(message.codes) ? message.codes : [];
+    let count = 0;
+    for (const rawCode of codes) {
+      const code = String(rawCode).trim().toUpperCase();
+      memoryCache.delete(code);
+      queueStockCheck(code, false, true, true);
+      count++;
+    }
+    sendResponse({ success: true, count });
+    return false;
   }
 
   if (message.action === "GET_BATCH_CACHE") {
@@ -206,8 +313,11 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     for (const rawCode of codes) {
       const code = String(rawCode).trim().toUpperCase();
       const cached = memoryCache.get(code);
-      if (cached && now - cached.timestamp < CACHE_TTL_MS) {
-        results[code] = cached;
+      if (cached) {
+        const ttl = cached.status === "NOT_FOUND" ? NOT_FOUND_CACHE_TTL_MS : POSITIVE_CACHE_TTL_MS;
+        if (now - cached.timestamp < ttl) {
+          results[code] = cached;
+        }
       }
     }
     sendResponse(results);
@@ -245,6 +355,7 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "GET_SETTINGS") {
     sendResponse({
       currency: currentCurrency,
+      usdTryRate: usdTryRate,
       cacheCount: memoryCache.size
     });
     return false;
@@ -258,7 +369,6 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "TOGGLE_BOM_PANEL") {
-    // Forward to active tab or find robotistanpro tab
     browserAPI.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs[0]) {
         browserAPI.tabs.sendMessage(tabs[0].id, { action: "TOGGLE_BOM_PANEL" });
